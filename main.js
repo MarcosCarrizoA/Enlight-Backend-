@@ -4,8 +4,9 @@ const pass = require("./util/password");
 const mysql = require("mysql2");
 
 const connection = mysql.createConnection({
-    host: "localhost",
-    user: "admin",
+    host: "127.0.0.1",
+    port: 3307,
+    user: "enlight",
     password: process.env.PASSWORD,
     database: "enlight"
 });
