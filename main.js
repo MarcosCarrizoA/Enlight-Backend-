@@ -23,6 +23,18 @@ connection.connect((err) => {
     }, 28800000);
 });
 
+connection.on("error", (error) => {
+    if (error.code == "PROTOCOL_CONNECTION_LOST") {
+        connection = mysql.createConnection({
+            host: "127.0.0.1",
+            port: 3307,
+            user: "enlight",
+            password: process.env.PASSWORD,
+            database: "enlight"
+        });
+    }
+});
+
 const app = express();
 
 app.use(express.json());
