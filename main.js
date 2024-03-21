@@ -2,6 +2,7 @@ require("dotenv").config();
 const express = require("express");
 const pass = require("./util/password");
 const mysql = require("mysql2");
+const nodemailer = require("nodemailer");
 
 const connection = mysql.createConnection({
     host: "127.0.0.1",
@@ -9,6 +10,18 @@ const connection = mysql.createConnection({
     user: "enlight",
     password: process.env.PASSWORD,
     database: "enlight"
+});
+
+connection.on("error", (error) => {
+    if (error.code == "PROTOCOL_CONNECTION_LOST") {
+        connection = mysql.createConnection({
+            host: "127.0.0.1",
+            port: 3307,
+            user: "enlight",
+            password: process.env.PASSWORD,
+            database: "enlight"
+        });
+    }
 });
 
 connection.connect((err) => {
@@ -23,15 +36,13 @@ connection.connect((err) => {
     }, 28800000);
 });
 
-connection.on("error", (error) => {
-    if (error.code == "PROTOCOL_CONNECTION_LOST") {
-        connection = mysql.createConnection({
-            host: "127.0.0.1",
-            port: 3307,
-            user: "enlight",
-            password: process.env.PASSWORD,
-            database: "enlight"
-        });
+const transporter = nodemailer.createTransport({
+    host: "smtp.gmail.com",
+    port: 465,
+    secure: true,
+    auth: {
+        user: process.env.MAIL_USER,
+        pass: process.env.MAIL_PASSWORD
     }
 });
 
@@ -84,13 +95,26 @@ app.post("/account", async (req, res) => {
                 connection.rollback();
                 return;
             }
-            connection.commit((err) => {
-                if (err) {
-                    console.error(err);
+            transporter.sendMail({
+                from: process.env.MAIL_USER,
+                to: email,
+                subject: "Enlight Registration",
+                text: `Hi ${name}, thanks for signing in to Enlight! If you didn't do this action, click here to delete your acconunt.`
+            }, (error, info) => {
+                if (error) {
+                    console.error(error);
                     res.status(500).send();
+                    connection.rollback();
                     return;
                 }
-                res.status(200).send();
+                connection.commit((err) => {
+                    if (err) {
+                        console.error(err);
+                        res.status(500).send();
+                        return;
+                    }
+                    res.status(200).send();
+                });
             });
         });
     });
