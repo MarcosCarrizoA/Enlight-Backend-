@@ -140,18 +140,57 @@ app.post("/password-reset/request", async (req, res) => {
         res.status(400).send();
         return;
     }
-    transporter.sendMail({
-        from: "enlightnoreply@gmail.com",
-        to: email,
-        subject: "Enlight Password Reset",
-        html: "<p><a href=http://18.229.107.19/password-reset/123>Click here</a> to reset your password. If this wasn't you, please change your password.</p>"
-    }, (error, info) => {
-        if (error) {
-            console.error(error);
+    pool.getConnection((err, connection) => {
+        if (err) {
+            console.error(err);
             res.status(500).send();
             return;
         }
-        res.status(200).send();
+        connection.beginTransaction((err) => {
+            if (err) {
+                console.error(err);
+                res.status(500).send();
+                connection.release();
+                return;
+            }
+            connection.query("SELECT email FROM account WHERE email = ?", [email], (err, result, fields) => {
+                if (err) {
+                    console.error(err);
+                    res.status(500).send();
+                    connection.release();
+                    return;
+                }
+                if (result.length == 0) {
+                    res.status(404).send();
+                    connection.release();
+                    return;
+                }
+                transporter.sendMail({
+                    from: "enlightnoreply@gmail.com",
+                    to: email,
+                    subject: "Enlight Password Reset",
+                    html: "<p><a href=http://18.229.107.19/password-reset/123>Click here</a> to reset your password. If this wasn't you, please change your password.</p>"
+                }, (error, info) => {
+                    if (error) {
+                        console.error(error);
+                        res.status(500).send();
+                        connection.rollback();
+                        connection.release();
+                        return;
+                    }
+                    connection.commit((err) => {
+                        if (err) {
+                            console.error(err);
+                            res.status(500).send();
+                            connection.release();
+                            return;
+                        }
+                        res.status(200).send();
+                        connection.release();
+                    });
+                });
+            });
+        });
     });
 });
 
