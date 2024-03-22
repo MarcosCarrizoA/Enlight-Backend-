@@ -43,18 +43,22 @@ app.get("/account", async (req, res) => {
             if (err) {
                 console.error(err);
                 res.status(500).send();
+                connection.release();
                 return;
             }
             if (result.length == 0) {
                 res.status(404).send();
+                connection.release();
                 return;
             }
             const verified = await pass.verify(password, result[0].password);
             if (!verified) {
                 res.status(401).send();
+                connection.release();
                 return;
             }
             res.status(200).send(result[0]);
+            connection.release();
         });
     });
 });
@@ -76,6 +80,7 @@ app.post("/account", async (req, res) => {
             if (err) {
                 console.error(err);
                 res.status(500).send();
+                connection.release();
                 return;
             }
             connection.query("INSERT INTO ACCOUNT VALUES (NULL, ?, ?, ?, ?, ?)", [email, encrypted, name, birth_date, address], (err, result, fields) => {
@@ -83,11 +88,13 @@ app.post("/account", async (req, res) => {
                     console.error(err);
                     res.status(409).send();
                     connection.rollback();
+                    connection.release();
                     return;
                 } else if (err) {
                     console.error(err);
                     res.status(500).send();
                     connection.rollback();
+                    connection.release();
                     return;
                 }
                 transporter.sendMail({
@@ -100,15 +107,18 @@ app.post("/account", async (req, res) => {
                         console.error(error);
                         res.status(500).send();
                         connection.rollback();
+                        connection.release();
                         return;
                     }
                     connection.commit((err) => {
                         if (err) {
                             console.error(err);
                             res.status(500).send();
+                            connection.release();
                             return;
                         }
                         res.status(200).send();
+                        connection.release();
                     });
                 });
             });
@@ -165,6 +175,7 @@ app.post("/password-reset", async (req, res) => {
             if (err) {
                 console.error(err);
                 res.status(500).send();
+                connection.release();
                 return;
             }
             const encrypted = await pass.encrypt(password);
