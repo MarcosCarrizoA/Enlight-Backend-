@@ -33,15 +33,15 @@ app.get("/account", async (req, res) => {
         res.status(400).send();
         return;
     }
-    pool.getConnection((err, connection) => {
-        if (err) {
-            console.error(err);
+    pool.getConnection((error, connection) => {
+        if (error) {
+            console.error(error);
             res.status(500).send();
             return;
         }
-        connection.query("SELECT * FROM account WHERE email = ?", [email], async (err, result, fields) => {
-            if (err) {
-                console.error(err);
+        connection.query("SELECT * FROM account WHERE email = ?", [email], async (error, result, fields) => {
+            if (error) {
+                console.error(error);
                 res.status(500).send();
                 connection.release();
                 return;
@@ -64,61 +64,69 @@ app.get("/account", async (req, res) => {
 });
 
 app.post("/account", async (req, res) => {
-    const { email, password, name, birth_date, address } = req.body;
-    if (email == undefined || password == undefined || name == undefined || birth_date == undefined || address == undefined) {
+    const { email, password, name, birth_date, address, role } = req.body;
+    if (email == undefined || password == undefined || name == undefined || birth_date == undefined || address == undefined || role == undefined) {
         res.status(400).send();
         return;
     }
     const encrypted = await pass.encrypt(password);
-    pool.getConnection((err, connection) => {
-        if (err) {
-            console.error(err);
+    pool.getConnection((error, connection) => {
+        if (error) {
+            console.error(error);
             res.status(500).send();
             return;
         }
-        connection.beginTransaction((err) => {
-            if (err) {
-                console.error(err);
+        connection.beginTransaction((error) => {
+            if (error) {
+                console.error(error);
                 res.status(500).send();
                 connection.release();
                 return;
             }
-            connection.query("INSERT INTO ACCOUNT VALUES (NULL, ?, ?, ?, ?, ?)", [email, encrypted, name, birth_date, address], (err, result, fields) => {
-                if (err && err.errno == 1062) {
-                    console.error(err);
+            connection.query("INSERT INTO account VALUES (NULL, ?, ?, ?, ?, ?)", [email, encrypted, name, birth_date, address], (error, result, fields) => {
+                if (error && error.errorno == 1062) {
+                    console.error(error);
                     res.status(409).send();
                     connection.rollback();
                     connection.release();
                     return;
-                } else if (err) {
-                    console.error(err);
+                } else if (error) {
+                    console.error(error);
                     res.status(500).send();
                     connection.rollback();
                     connection.release();
                     return;
                 }
-                transporter.sendMail({
-                    from: process.env.MAIL_USER,
-                    to: email,
-                    subject: "Enlight Registration",
-                    text: `Hi ${name}, thanks for signing in to Enlight! If you didn't do this action, click here to delete your account.`
-                }, (error, info) => {
+                connection.query("INSERT INTO account_role VALUES(?, (SELECT id FROM role WHERE name = ?))", [result.insertId, role], (error, result, fields) => {
                     if (error) {
                         console.error(error);
                         res.status(500).send();
                         connection.rollback();
                         connection.release();
-                        return;
                     }
-                    connection.commit((err) => {
-                        if (err) {
-                            console.error(err);
+                    transporter.sendMail({
+                        from: process.env.MAIL_USER,
+                        to: email,
+                        subject: "Enlight Registration",
+                        text: `Hi ${name}, thanks for signing in to Enlight! If you didn't do this action, click here to delete your account.`
+                    }, (error, info) => {
+                        if (error) {
+                            console.error(error);
                             res.status(500).send();
+                            connection.rollback();
                             connection.release();
                             return;
                         }
-                        res.status(200).send();
-                        connection.release();
+                        connection.commit((error) => {
+                            if (error) {
+                                console.error(error);
+                                res.status(500).send();
+                                connection.release();
+                                return;
+                            }
+                            res.status(200).send();
+                            connection.release();
+                        });
                     });
                 });
             });
@@ -140,22 +148,22 @@ app.post("/password-reset/request", async (req, res) => {
         res.status(400).send();
         return;
     }
-    pool.getConnection((err, connection) => {
-        if (err) {
-            console.error(err);
+    pool.getConnection((error, connection) => {
+        if (error) {
+            console.error(error);
             res.status(500).send();
             return;
         }
-        connection.beginTransaction((err) => {
-            if (err) {
-                console.error(err);
+        connection.beginTransaction((error) => {
+            if (error) {
+                console.error(error);
                 res.status(500).send();
                 connection.release();
                 return;
             }
-            connection.query("SELECT email FROM account WHERE email = ?", [email], (err, result, fields) => {
-                if (err) {
-                    console.error(err);
+            connection.query("SELECT email FROM account WHERE email = ?", [email], (error, result, fields) => {
+                if (error) {
+                    console.error(error);
                     res.status(500).send();
                     connection.release();
                     return;
@@ -178,9 +186,9 @@ app.post("/password-reset/request", async (req, res) => {
                         connection.release();
                         return;
                     }
-                    connection.commit((err) => {
-                        if (err) {
-                            console.error(err);
+                    connection.commit((error) => {
+                        if (error) {
+                            console.error(error);
                             res.status(500).send();
                             connection.release();
                             return;
@@ -204,15 +212,15 @@ app.post("/password-reset", async (req, res) => {
         res.status(400).send();
         return;
     }
-    pool.getConnection((err, connection) => {
-        if (err) {
-            console.error(err);
+    pool.getConnection((error, connection) => {
+        if (error) {
+            console.error(error);
             res.status(500).send();
             return;
         }
-        connection.beginTransaction(async (err) => {
-            if (err) {
-                console.error(err);
+        connection.beginTransaction(async (error) => {
+            if (error) {
+                console.error(error);
                 res.status(500).send();
                 connection.release();
                 return;
