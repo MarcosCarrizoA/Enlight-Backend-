@@ -79,7 +79,12 @@ app.post("/account", async (req, res) => {
                 return;
             }
             connection.query("INSERT INTO ACCOUNT VALUES (NULL, ?, ?, ?, ?, ?)", [email, encrypted, name, birth_date, address], (err, result, fields) => {
-                if (err) {
+                if (err && err.errno == 1062) {
+                    console.error(err);
+                    res.status(409).send();
+                    connection.rollback();
+                    return;
+                } else if (err) {
                     console.error(err);
                     res.status(500).send();
                     connection.rollback();
