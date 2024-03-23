@@ -4,6 +4,7 @@ const pass = require("./util/password");
 const mysql = require("mysql2");
 const nodemailer = require("nodemailer");
 const path = require("path");
+const jwt = require("jsonwebtoken");
 
 const pool = mysql.createPool({
     host: "127.0.0.1",
@@ -26,6 +27,8 @@ const transporter = nodemailer.createTransport({
 const app = express();
 
 app.use(express.json());
+
+app.use(express.urlencoded({ extended: true }));
 
 app.get("/account", async (req, res) => {
     const { email, password } = req.query;
@@ -69,20 +72,20 @@ app.post("/account", async (req, res) => {
         res.status(400).send();
         return;
     }
-    const encrypted = await pass.encrypt(password);
     pool.getConnection((error, connection) => {
         if (error) {
             console.error(error);
             res.status(500).send();
             return;
         }
-        connection.beginTransaction((error) => {
+        connection.beginTransaction(async (error) => {
             if (error) {
                 console.error(error);
                 res.status(500).send();
                 connection.release();
                 return;
             }
+            const encrypted = await pass.encrypt(password);
             connection.query("INSERT INTO account VALUES (NULL, ?, ?, ?, ?, ?)", [email, encrypted, name, birth_date, address], (error, result, fields) => {
                 if (error && error.errno == 1062) {
                     console.error(error);
@@ -162,7 +165,7 @@ app.post("/password-reset/request", async (req, res) => {
                 connection.release();
                 return;
             }
-            connection.query("SELECT email FROM account WHERE email = ?", [email], (error, result, fields) => {
+            connection.query("SELECT id FROM account WHERE email = ?", [email], (error, result, fields) => {
                 if (error) {
                     console.error(error);
                     res.status(500).send();
@@ -174,12 +177,80 @@ app.post("/password-reset/request", async (req, res) => {
                     connection.release();
                     return;
                 }
-                transporter.sendMail({
-                    from: "enlightnoreply@gmail.com",
-                    to: email,
-                    subject: "Enlight Password Reset",
-                    html: "<p><a href=http://18.229.107.19/password-reset/123>Click here</a> to reset your password. If this wasn't you, please change your password.</p>"
-                }, (error, info) => {
+                jwt.sign({ id: result[0].id }, process.env.JWT_KEY, { expiresIn: 900 }, (error, token) => {
+                    if (error) {
+                        console.error(error);
+                        res.status(500).send();
+                        connection.release();
+                        return;
+                    }
+                    transporter.sendMail({
+                        from: "enlightnoreply@gmail.com",
+                        to: email,
+                        subject: "Enlight Password Reset",
+                        html: `<p><a href=http://18.229.107.19/password-reset/${token}>Click here</a> to reset your password. If this wasn't you, please change your password.</p>`
+                    }, (error, info) => {
+                        if (error) {
+                            console.error(error);
+                            res.status(500).send();
+                            connection.rollback();
+                            connection.release();
+                            return;
+                        }
+                        connection.commit((error) => {
+                            if (error) {
+                                console.error(error);
+                                res.status(500).send();
+                                connection.release();
+                                return;
+                            }
+                            res.status(200).send();
+                            connection.release();
+                        });
+                    });
+                });
+            });
+        });
+    });
+});
+
+app.get("/password-reset/:token", async (req, res) => {
+    res.status(200).sendFile(path.join(__dirname, "/password-reset.html"));
+});
+
+app.post("/password-reset/:token", async (req, res) => {
+    const { password } = req.body;
+    const { token } = req.params;
+    if (password == undefined || token == undefined) {
+        res.status(400).send();
+        return;
+    }
+    jwt.verify(token, process.env.JWT_KEY, (error, decoded) => {
+        if (error && error.name == "TokenExpiredError") {
+            console.error(error);
+            res.status(401).sendFile(path.join(__dirname, "/token-expired.html"));
+            return;
+        }
+        if (error) {
+            console.error(error);
+            res.status(401).sendFile(path.join(__dirname + "/invalid-token.html"));
+            return;
+        }
+        pool.getConnection((error, connection) => {
+            if (error) {
+                console.error(error);
+                res.status(500).send();
+                return;
+            }
+            connection.beginTransaction(async (error) => {
+                if (error) {
+                    console.error(error);
+                    res.status(500).send();
+                    connection.release();
+                    return;
+                }
+                const encrypted = await pass.encrypt(password);
+                connection.query("UPDATE account SET password = ? WHERE id = ?", [encrypted, decoded.id], (error, result, fields) => {
                     if (error) {
                         console.error(error);
                         res.status(500).send();
@@ -194,40 +265,11 @@ app.post("/password-reset/request", async (req, res) => {
                             connection.release();
                             return;
                         }
-                        res.status(200).send();
+                        res.status(200).sendFile(path.join(__dirname, "/successful-reset.html"));
                         connection.release();
                     });
                 });
             });
-        });
-    });
-});
-
-app.get("/password-reset/:token", async (req, res) => {
-    res.status(200).sendFile(path.join(__dirname, "/password-reset.html"));
-});
-
-app.post("/password-reset", async (req, res) => {
-    const { token, password } = req.body;
-    if (token == undefined) {
-        res.status(400).send();
-        return;
-    }
-    pool.getConnection((error, connection) => {
-        if (error) {
-            console.error(error);
-            res.status(500).send();
-            return;
-        }
-        connection.beginTransaction(async (error) => {
-            if (error) {
-                console.error(error);
-                res.status(500).send();
-                connection.release();
-                return;
-            }
-            const encrypted = await pass.encrypt(password);
-            connection.query()
         });
     });
 });
