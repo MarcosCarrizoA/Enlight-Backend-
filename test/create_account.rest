@@ -6,5 +6,6 @@ Content-Type: application/json
     "password": "pedro123",
     "name": "Pedro",
     "birth_date": "2004-01-10",
-    "address": "Pedro's House"
+    "address": "Pedro's House",
+    "role": "student"
 }

@@ -30,8 +30,29 @@ app.use(express.json());
 
 app.use(express.urlencoded({ extended: true }));
 
-app.get("/account", async (req, res) => {
-    const { email, password } = req.query;
+app.get("/verify", async (req, res) => {
+    const authHeader = req.headers.authorization;
+    if (authHeader == undefined) {
+        res.status(400).send();
+        return;
+    }
+    const token = authHeader.split("Bearer ")[1];
+    if (token == undefined) {
+        res.status(400).send();
+        return;
+    }
+    jwt.verify(token, process.env.JWT_KEY, (error, decoded) => {
+        if (error) {
+            console.error(error);
+            res.status(401).send();
+            return;
+        }
+        res.status(200).send();
+    });
+});
+
+app.post("/login", async (req, res) => {
+    const { email, password } = req.body;
     if (email == undefined || password == undefined) {
         res.status(400).send();
         return;
@@ -42,7 +63,7 @@ app.get("/account", async (req, res) => {
             res.status(500).send();
             return;
         }
-        connection.query("SELECT * FROM account WHERE email = ?", [email], async (error, result, fields) => {
+        connection.query("SELECT id, password FROM account WHERE email = ?", [email], async (error, result, fields) => {
             if (error) {
                 console.error(error);
                 res.status(500).send();
@@ -60,8 +81,58 @@ app.get("/account", async (req, res) => {
                 connection.release();
                 return;
             }
-            res.status(200).send(result[0]);
             connection.release();
+            jwt.sign({ id: result[0].id }, process.env.JWT_KEY, { expiresIn: 900 }, (error, token) => {
+                if (error) {
+                    console.error(error);
+                    res.status(500).send();
+                    return;
+                }
+                res.status(200).send(token);
+            });
+        });
+    });
+});
+
+app.get("/account", async (req, res) => {
+    const authHeader = req.headers.authorization;
+    if (authHeader == undefined) {
+        res.status(400).send();
+        return;
+    }
+    const token = authHeader.split("Bearer ")[1];
+    if (token == undefined) {
+        res.status(400).send();
+        return;
+    }
+    jwt.verify(token, process.env.JWT_KEY, (error, decoded) => {
+        if (error) {
+            console.error(error);
+            res.status(401).send();
+            return;
+        }
+        pool.getConnection((error, connection) => {
+            if (error) {
+                console.error(error);
+                res.status(500).send();
+                return;
+            }
+            connection.query("SELECT * FROM account WHERE id = ?", [decoded.id], async (error, result, fields) => {
+                if (error) {
+                    console.error(error);
+                    res.status(500).send();
+                    connection.release();
+                    return;
+                }
+                if (result.length == 0) {
+                    res.status(404).send();
+                    connection.release();
+                    return;
+                }
+                delete result[0].password;
+                res.status(200).send(result[0]);
+                connection.release();
+            });
         });
     });
 });
