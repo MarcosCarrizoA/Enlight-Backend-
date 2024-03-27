@@ -7,5 +7,5 @@ Content-Type: application/json
     "name": "Pedro",
     "birth_date": "2004-01-10",
     "address": "Pedro's House",
-    "role": "student"
+    "role": "teacher"
 }

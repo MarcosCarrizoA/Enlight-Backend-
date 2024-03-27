@@ -94,6 +94,7 @@ app.post("/login", async (req, res) => {
     });
 });
 
+// Account
 app.get("/account", async (req, res) => {
     const authHeader = req.headers.authorization;
     if (authHeader == undefined) {
@@ -129,6 +130,7 @@ app.get("/account", async (req, res) => {
                     connection.release();
                     return;
                 }
+                delete result[0].id;
                 delete result[0].password;
                 res.status(200).send(result[0]);
                 connection.release();
@@ -172,13 +174,36 @@ app.post("/account", async (req, res) => {
                     connection.release();
                     return;
                 }
-                connection.query("INSERT INTO account_role VALUES(?, (SELECT id FROM role WHERE name = ?))", [result.insertId, role], (error, result, fields) => {
-                    if (error) {
-                        console.error(error);
-                        res.status(500).send();
-                        connection.rollback();
-                        connection.release();
-                    }
+                Promise.all([
+                    new Promise((resolve, reject) => {
+                        connection.query("INSERT INTO account_role VALUES (?, (SELECT id FROM role WHERE name = ?))", [result.insertId, role], (error, result, fields) => {
+                            if (error) {
+                                reject(error);
+                                return;
+                            }
+                            resolve();
+                        });
+                    }),
+                    new Promise((resolve, reject) => {
+                        if (role != "teacher") {
+                            resolve();
+                            return;
+                        }
+                        connection.query("INSERT INTO teacher VALUES (NULL, '', '')", [], (error, teacher, fields) => {
+                            if (error) {
+                                reject(error);
+                                return;
+                            }
+                            connection.query("INSERT INTO account_teacher VALUES (?, ?)", [result.insertId, teacher.insertId], (error, result, fields) => {
+                                if (error) {
+                                    reject(error);
+                                    return;
+                                }
+                                resolve();
+                            });
+                        });
+                    })
+                ]).then((value) => {
                     transporter.sendMail({
                         from: process.env.MAIL_USER,
                         to: email,
@@ -203,6 +228,11 @@ app.post("/account", async (req, res) => {
                             connection.release();
                         });
                     });
+                }).catch((error) => {
+                    console.error(error);
+                    res.status(500).send();
+                    connection.rollback();
+                    connection.release();
                 });
             });
         });
@@ -217,6 +247,105 @@ app.delete("/account", async (req, res) => {
 
 });
 
+// Teacher
+app.get("/teacher", async (req, res) => {
+    const authHeader = req.headers.authorization;
+    if (authHeader == undefined) {
+        res.status(400).send();
+        return;
+    }
+    const token = authHeader.split("Bearer ")[1];
+    if (token == undefined) {
+        res.status(400).send();
+        return;
+    }
+    jwt.verify(token, process.env.JWT_KEY, (error, decoded) => {
+        if (error) {
+            console.error(error);
+            res.status(401).send();
+            return;
+        }
+        pool.getConnection((error, connection) => {
+            if (error) {
+                console.error(error);
+                res.status(500).send();
+                return;
+            }
+            connection.query("SELECT * FROM teacher WHERE id = (SELECT teacher_id FROM teacher WHERE account_id = ?", [decoded.id], (error, result, fields) => {
+                if (error) {
+                    console.error(error);
+                    res.status(500).send();
+                    connection.release();
+                    return;
+                }
+                delete result[0].id;
+                res.status(200).send(result[0]);
+                connection.release();
+            });
+        });
+    });
+});
+
+app.put("/teacher", async (req, res) => {
+    const authHeader = req.headers.authorization;
+    if (authHeader == undefined) {
+        res.status(400).send();
+        return;
+    }
+    const token = authHeader.split("Bearer ")[1];
+    if (token == undefined) {
+        res.status(400).send();
+        return;
+    }
+    jwt.verify(token, process.env.JWT_KEY, (error, decoded) => {
+        if (error) {
+            console.error(error);
+            res.status(401).send();
+            return;
+        }
+        const { description, profile_picture } = req.body;
+        if (description == undefined || profile_picture == undefined) {
+            res.status(400).send();
+            return;
+        }
+        pool.getConnection((error, connection) => {
+            if (error) {
+                console.error(error);
+                res.status(500).send();
+                return;
+            }
+            connection.beginTransaction((error) => {
+                if (error) {
+                    console.error(error);
+                    res.status(500).send();
+                    connection.release();
+                    return;
+                }
+                connection.query("UPDATE teacher SET description = ?, profile_picture = ? WHERE id = (SELECT teacher_id FROM account_teacher WHERE account_id = ?)", [description, profile_picture, decoded.id], (error, result, fields) => {
+                    if (error) {
+                        console.error(error);
+                        res.status(500).send();
+                        connection.release();
+                        return;
+                    }
+                    connection.commit((error) => {
+                        if (error) {
+                            console.error(error);
+                            res.status(500).send();
+                            connection.release();
+                            return;
+                        }
+                        res.status(200).send();
+                        connection.release();
+                    });
+                });
+            });
+        });
+        res.status(200).send();
+    });
+});
+
+// Password Reset
 app.post("/password-reset/request", async (req, res) => {
     const { email } = req.body;
     if (email == undefined) {

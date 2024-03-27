@@ -1,0 +1,8 @@
+PUT http://localhost/teacher
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NjYsImlhdCI6MTcxMTU2MzQ3MCwiZXhwIjoxNzExNTY0MzcwfQ.f97YesGXhr6_KJEKjNv78xzFeqkgyFuJPSYtHiM3fIA
+Content-Type: application/json
+
+{
+    "description": "hola",
+    "profile_picture": "hola"
+}
