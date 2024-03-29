@@ -44,9 +44,10 @@ class Mailer {
     /**
      * 
      * @param {string} token 
+     * @param {string} email 
      * @returns {Promise<MailerResponse>}
      */
-    async sendRecoveryMail(token) {
+    async sendRecoveryMail(token, email) {
         return new Promise((resolve) => {
             this.#transporter.sendMail({
                 from: "enlightnoreply@gmail.com",

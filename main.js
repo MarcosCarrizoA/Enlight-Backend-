@@ -20,6 +20,10 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Unprotected endpoints
+app.get("/test", async (req, res) => {
+    res.status(200).send("API is running correctly.");
+});
+
 app.post("/login", async (req, res) => {
     const { email, password } = req.body;
     if (email == undefined || password == undefined) {
@@ -101,7 +105,7 @@ app.post("/password-reset/request", async (req, res) => {
             res.status(500).send();
             return;
         }
-        const result = await mail.sendRecoveryMail(token);
+        const result = await mail.sendRecoveryMail(token, email);
         if (!result.ok) {
             res.status(500).send();
             return;
