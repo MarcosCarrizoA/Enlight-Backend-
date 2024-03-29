@@ -93,7 +93,7 @@ class Database {
      * 
      * @param {string} sql 
      * @param {Array} values 
-     * @param  {...Array<{sql: string, values: Array<any>}>} subtransactions 
+     * @param  {...Array<{sql: string, values: Array<any>, previousInsert: Array<Array<number>>} subtransactions 
      * @returns {Promise<any>} 
      * @throws {Error} 
      */
@@ -111,9 +111,19 @@ class Database {
                         return;
                     }
                     try {
-                        for (let subtransactionSet of subtransactions) {
-                            const promises = subtransactionSet.map(transaction => this.#subtransaction(connection, transaction.sql, transaction.values));
-                            await Promise.all(promises);
+                        const completed = [];
+                        for (const subtransactionSet of subtransactions) {
+                            const promises = subtransactionSet.map(async subtransaction => {
+                                const values = subtransaction.values;
+                                if (subtransaction.previousInsert != undefined) {
+                                    for (const value of subtransaction.previousInsert) {
+                                        values.unshift(completed[value[0]][value[1]]);
+                                    }
+                                }
+                                return this.#subtransaction(connection, subtransaction.sql, values);
+                            });
+                            const results = await Promise.all(promises);
+                            completed.push(results);
                         }
                         resolve(connection);
                     } catch (error) {
@@ -139,8 +149,9 @@ class Database {
             connection.query(sql, values, (error, result, fields) => {
                 if (error) {
                     reject(error);
+                    return;
                 }
-                resolve(result);
+                resolve(result.insertId ?? 0);
             });
         });
     }
@@ -182,6 +193,41 @@ class Database {
 
     /**
      * 
+     * @param {string} token 
+     * @returns {Promise<DatabaseResponse>}
+     */
+    async deleteRefreshToken(token) {
+        return new Promise(async (resolve) => {
+            try {
+                await this.#transaction("DELETE FROM refresh_token WHERE token = ?", [token]);
+                resolve({ ok: true });
+            } catch (error) {
+                resolve({ ok: false, error: 500 });
+            }
+        });
+    }
+
+    /**
+     * 
+     * @param {string} token 
+     * @returns {Promise<DatabaseResponse>}
+     */
+    async getRefreshToken(token) {
+        return new Promise(async (resolve) => {
+            try {
+                const result = await this.#transaction("SELECT id FROM refresh_token WHERE token = ?", [token]);
+                if (result.length == 0) {
+                    resolve({ ok: false, error: 401 });
+                }
+                resolve({ ok: true });
+            } catch (error) {
+                resolve({ ok: false, error: 500 });
+            }
+        });
+    }
+
+    /**
+     * 
      * @param {string} email 
      * @param {string} password 
      * @param {string} name 
@@ -194,8 +240,9 @@ class Database {
         return new Promise(async (resolve) => {
             try {
                 const secondSet = [{
-                    sql: "INSERT INTO account_role VALUES ((SELECT id FROM account WHERE email = ?), (SELECT id FROM role WHERE name = ?))",
-                    values: [email, role]
+                    sql: "INSERT INTO account_role VALUES (?, (SELECT id FROM role WHERE name = ?))",
+                    values: [role],
+                    previousInsert: [[0, 0]]
                 }];
                 const thirdSet = [];
                 if (role == "teacher") {
@@ -204,8 +251,9 @@ class Database {
                         values: []
                     });
                     thirdSet.push({
-                        sql: "INSERT INTO account_teacher VALUES ((SELECT id FROM account WHERE email = ?), (SELECT id FROM teacher ORDER BY id DESC LIMIT 1))",
-                        values: [email]
+                        sql: "INSERT INTO account_teacher VALUES (?, ?)",
+                        values: [],
+                        previousInsert: [[1, 1], [0, 0]]
                     });
                 }
                 const result = await this.#multiTransaction(

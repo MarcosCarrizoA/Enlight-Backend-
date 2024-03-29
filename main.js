@@ -142,6 +142,31 @@ app.post("/password-reset/:token", async (req, res) => {
     });
 });
 
+app.get("/logout", auth.refresh, async (req, res) => {
+    const response = await db.deleteRefreshToken(req.body.token);
+    if (!response.ok) {
+        res.status(response.error).send();
+        return;
+    }
+    res.status(200).send();
+});
+
+app.get("/refresh", auth.refresh, async (req, res) => {
+    const response = await db.getRefreshToken(req.body.token);
+    if (!response.ok) {
+        res.status(response.error).send();
+        return;
+    }
+    jwt.sign({ id: req.body.id }, process.env.ACCESS_TOKEN_KEY, { expiresIn: 900 }, (error, accessToken) => {
+        if (error) {
+            console.error(error);
+            res.status(500).send();
+            return;
+        }
+        res.status(200).send({ access_token: accessToken });
+    });
+});
+
 // Protected endpoints
 app.use(auth.authenticate);
 
