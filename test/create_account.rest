@@ -2,7 +2,7 @@ POST http://localhost/account
 Content-Type: application/json
 
 {
-    "email": "pedro.ramirezneira@gmail.com",
+    "email": "pedroramirezneira@gmail.com",
     "password": "pedro123",
     "name": "Pedro",
     "birth_date": "2004-01-10",

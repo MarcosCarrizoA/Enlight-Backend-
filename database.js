@@ -157,7 +157,7 @@ class Database {
                 if (result.length == 0) {
                     resolve({ ok: false, error: 404 });
                 }
-                resolve({ ok: true, id: result[0].id, password: result[0].password })
+                resolve({ ok: true, result: result[0] })
             } catch (error) {
                 resolve({ ok: false, error: 500 });
             }
