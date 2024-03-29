@@ -1,5 +1,5 @@
 PUT http://localhost/teacher
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NjYsImlhdCI6MTcxMTU2MzQ3MCwiZXhwIjoxNzExNTY0MzcwfQ.f97YesGXhr6_KJEKjNv78xzFeqkgyFuJPSYtHiM3fIA
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NjYsImlhdCI6MTcxMTY2NTI1NCwiZXhwIjoxNzExNjY2MTU0fQ.z-zT6Cmsd5ziSLpd2dyQO05VDEHw3ujsgiGv2PK1yhY
 Content-Type: application/json
 
 {

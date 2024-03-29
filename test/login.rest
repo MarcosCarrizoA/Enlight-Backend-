@@ -5,3 +5,13 @@ Content-Type: application/json
     "email": "pedroramirezneira@gmail.com",
     "password": "pedro123"
 }
+
+###
+
+POST http://localhost/login
+Content-Type: application/json
+
+{
+    "email": "pramirezneira@mail.austral.edu.ar",
+    "password": "pedro123"
+}
