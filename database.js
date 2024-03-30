@@ -231,12 +231,12 @@ class Database {
      * @param {string} email 
      * @param {string} password 
      * @param {string} name 
-     * @param {string} birth_date 
+     * @param {string} birthday 
      * @param {string} address 
      * @param {string} role 
      * @returns {Promise<DatabaseResponse>} 
      */
-    async createAccount(email, password, name, birth_date, address, role) {
+    async createAccount(email, password, name, birthday, address, role) {
         return new Promise(async (resolve) => {
             try {
                 const secondSet = [{
@@ -260,7 +260,7 @@ class Database {
                     [
                         {
                             sql: "INSERT INTO account VALUES (NULL, ?, ?, ?, ?, ?)",
-                            values: [email, password, name, birth_date, address]
+                            values: [email, password, name, birthday, address]
                         }
                     ],
                     secondSet,
@@ -362,6 +362,23 @@ class Database {
         return new Promise(async (resolve) => {
             try {
                 await this.#transaction("UPDATE account SET password = ? WHERE id = ?", [password, id]);
+                resolve({ ok: true });
+            } catch (error) {
+                resolve({ ok: false, error: 500 });
+            }
+        });
+    }
+
+    /**
+     * 
+     * @param {number} id 
+     * @param {string} password 
+     * @returns {Promise<DatabaseResponse>} 
+     */
+    async updateAccount(id, name, birthday, address) {
+        return new Promise(async (resolve) => {
+            try {
+                await this.#transaction("UPDATE account SET name = ?, birthday = ?, address = ? WHERE id = ?", [name, birthday, address, id]);
                 resolve({ ok: true });
             } catch (error) {
                 resolve({ ok: false, error: 500 });

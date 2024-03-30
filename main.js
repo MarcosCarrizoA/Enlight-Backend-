@@ -63,13 +63,13 @@ app.post("/login", async (req, res) => {
 });
 
 app.post("/account", async (req, res) => {
-    const { email, password, name, birth_date, address, role } = req.body;
-    if (email == undefined || password == undefined || name == undefined || birth_date == undefined || address == undefined || role == undefined) {
+    const { email, password, name, birthday, address, role } = req.body;
+    if (email == undefined || password == undefined || name == undefined || birthday == undefined || address == undefined || role == undefined) {
         res.status(400).send();
         return;
     }
     const encrypted = await pass.encrypt(password);
-    const response = await db.createAccount(email, encrypted, name, birth_date, address, role);
+    const response = await db.createAccount(email, encrypted, name, birthday, address, role);
     if (!response.ok) {
         res.status(response.error).send();
         return;
@@ -191,7 +191,17 @@ app.get("/account", async (req, res) => {
 });
 
 app.put("/account", async (req, res) => {
-
+    const { name, birthday, address } = req.body;
+    if (name == undefined || birthday == undefined || address == undefined) {
+        res.status(400).send();
+        return;
+    }
+    const response = await db.updateAccount(req.body.id, name, birthday, address);
+    if (!response.ok) {
+        res.status(response.error).send();
+        return;
+    }
+    res.status(200).send();
 });
 
 app.delete("/account", async (req, res) => {
