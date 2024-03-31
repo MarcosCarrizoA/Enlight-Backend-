@@ -8,6 +8,7 @@ const jwt = require("jsonwebtoken");
 const auth = require("./middleware/authenticate");
 const database = require("./database");
 const mailer = require("./mailer");
+const cors = require("cors")({ origin: true });
 
 const db = database();
 
@@ -18,6 +19,8 @@ const app = express();
 app.use(express.json());
 
 app.use(express.urlencoded({ extended: true }));
+
+app.use(cors);
 
 // Unprotected endpoints
 app.get("/test", async (req, res) => {
