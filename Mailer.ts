@@ -1,15 +1,13 @@
-require("dotenv").config();
-const nodemailer = require("nodemailer");
+import dotenv from "dotenv";
+import nodemailer, { type Transporter } from "nodemailer";
 
-class Mailer {
-    /**
-     * @typedef MailerResponse
-     * @property {boolean} ok - Indicates whether the response has an error.
-     */
-    #transporter;
+dotenv.config();
+
+export class Mailer {
+    private transporter;
 
     constructor() {
-        this.#transporter = nodemailer.createTransport({
+        this.transporter = nodemailer.createTransport({
             service: "gmail",
             secure: true,
             auth: {
@@ -19,53 +17,39 @@ class Mailer {
         });
     }
 
-    /**
-     * 
-     * @param {string} name 
-     * @param {string} email 
-     * @returns {Promise<MailerResponse>}
-     */
-    async sendRegisterMail(name, email) {
+    async sendRegisterMail(name: string, email: string): Promise<boolean> {
         return new Promise((resolve) => {
-            this.#transporter.sendMail({
+            this.transporter.sendMail({
                 from: process.env.MAIL_USER,
                 to: email,
                 subject: "Enlight Registration",
                 text: `Hi ${name}, thanks for signing in to Enlight! If you didn't do this action, click here to delete your account.`
-            }, (error, info) => {
+            }, (error) => {
                 if (error) {
-                    resolve({ ok: false });
+                    resolve(false);
                 }
-                resolve({ ok: true });
+                resolve(true);
             });
         });
     }
 
-    /**
-     * 
-     * @param {string} token 
-     * @param {string} email 
-     * @returns {Promise<MailerResponse>}
-     */
-    async sendRecoveryMail(token, email) {
+    async sendRecoveryMail(token: string, email: string): Promise<boolean> {
         return new Promise((resolve) => {
-            this.#transporter.sendMail({
+            this.transporter.sendMail({
                 from: "enlightnoreply@gmail.com",
                 to: email,
                 subject: "Enlight Password Reset",
                 html: `<p><a href=http://18.229.107.19/password-reset/${token}>Click here</a> to reset your password. If this wasn't you, please change your password.</p>`
-            }, (error, info) => {
+            }, (error) => {
                 if (error) {
-                    resolve({ ok: false });
+                    resolve(false);
                 }
-                resolve({ ok: true });
+                resolve(true);
             });
         });
     }
 }
 
-function mailer() {
+export default function mailer() {
     return new Mailer();
 }
-
-module.exports = mailer;

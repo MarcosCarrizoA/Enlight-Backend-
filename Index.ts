@@ -1,26 +1,30 @@
-require("dotenv").config();
-const express = require("express");
-const pass = require("./util/password");
-const mysql = require("mysql2");
-const nodemailer = require("nodemailer");
-const path = require("path");
-const jwt = require("jsonwebtoken");
-const auth = require("./middleware/authenticate");
-const database = require("./database");
-const mailer = require("./mailer");
-const cors = require("cors")({ origin: true });
+import dotenv from "dotenv";
+import express from "express";
+import type { Express, Request, Response } from "express";
+import jwt from "jsonwebtoken";
+import auth from "./middleware/Auth";
+import type { Token } from "./middleware/Auth";
+import database from "./Database";
+import type { Database } from "./Database";
+import mailer from "./Mailer";
+import type { Mailer } from "./Mailer";
+import cors from "cors";
+import path from "path";
 
-const db = database();
 
-const mail = mailer();
+dotenv.config();
 
-const app = express();
+const db: Database = database();
+
+const mail: Mailer = mailer();
+
+const app: Express = express();
 
 app.use(express.json());
 
 app.use(express.urlencoded({ extended: true }));
 
-app.use(cors);
+app.use(cors({ origin: true }));
 
 // Unprotected endpoints
 app.get("/test", async (req, res) => {
@@ -34,30 +38,35 @@ app.post("/login", async (req, res) => {
         return;
     }
     const response = await db.getCredentials(email);
-    if (!response.ok) {
-        res.status(response.error).send();
+    if (response.error) {
+        res.status(500).send();
         return;
     }
-    const verified = await pass.verify(password, response.result.password);
+    if (!response.result) {
+        res.status(404).send();
+        return;
+    }
+
+    const verified = await Bun.password.verify(password, response.result.password, "bcrypt");
     if (!verified) {
         res.status(401).send();
         return;
     }
-    jwt.sign({ id: response.result.id }, process.env.ACCESS_TOKEN_KEY, { expiresIn: 900 }, (error, accessToken) => {
+    jwt.sign({ id: response.result.id }, process.env.ACCESS_TOKEN_KEY!, { expiresIn: 900 }, (error, accessToken) => {
         if (error) {
             console.error(error);
             res.status(500).send();
             return;
         }
-        jwt.sign({ id: response.result.id }, process.env.REFRESH_TOKEN_KEY, async (error, refreshToken) => {
+        jwt.sign({ id: response.result!.id }, process.env.REFRESH_TOKEN_KEY!, async (error: any, refreshToken: any) => {
             if (error) {
                 console.error(error);
                 res.status(500).send();
                 return;
             }
             const token = await db.insertRefreshToken(refreshToken);
-            if (!token.ok) {
-                res.status(token.error).send();
+            if (token.error) {
+                res.status(500).send();
                 return;
             }
             res.status(200).send({ access_token: accessToken, refresh_token: refreshToken });
@@ -71,22 +80,29 @@ app.post("/account", async (req, res) => {
         res.status(400).send();
         return;
     }
-    const encrypted = await pass.encrypt(password);
+    const encrypted = await Bun.password.hash(password, "bcrypt");
     const response = await db.createAccount(email, encrypted, name, birthday, address, role);
-    if (!response.ok) {
-        res.status(response.error).send();
+    if (response.error) {
+        res.status(response.error == 1062 ? 409 : 500).send();
         return;
     }
     const connection = response.result;
     const result = await mail.sendRegisterMail(name, email);
-    if (!result.ok) {
-        connection.rollback();
-        connection.release();
-        res.status(500).send();
-        return;
+    if (!result) {
+        connection!.rollback((error) => {
+            if (error) {
+                console.error(error);
+                connection!.release();
+                res.status(500).send();
+                return;
+            }
+            connection!.release();
+            res.status(500).send();
+            return;
+        });
     }
-    connection.commit();
-    connection.release();
+    connection!.commit();
+    connection!.release();
     res.status(200).send();
 });
 
@@ -98,18 +114,22 @@ app.post("/password-reset/request", async (req, res) => {
         return;
     }
     const response = await db.getAccountId(email);
-    if (!response.ok) {
-        res.status(response.error).send();
+    if (response.error) {
+        res.status(500).send();
         return;
     }
-    jwt.sign({ id: response.result }, process.env.PASSWORD_TOKEN_KEY, { expiresIn: 900 }, async (error, token) => {
+    if (!response.result) {
+        res.status(404).send();
+        return;
+    }
+    jwt.sign({ id: response.result }, process.env.PASSWORD_TOKEN_KEY!, { expiresIn: 900 }, async (error, token) => {
         if (error) {
             console.error(error);
             res.status(500).send();
             return;
         }
-        const result = await mail.sendRecoveryMail(token, email);
-        if (!result.ok) {
+        const result = await mail.sendRecoveryMail(token!, email);
+        if (!result) {
             res.status(500).send();
             return;
         }
@@ -128,7 +148,7 @@ app.post("/password-reset/:token", async (req, res) => {
         res.status(400).send();
         return;
     }
-    jwt.verify(token, process.env.PASSWORD_TOKEN_KEY, async (error, decoded) => {
+    jwt.verify(token, process.env.PASSWORD_TOKEN_KEY!, async (error, decoded) => {
         if (error && error.name == "TokenExpiredError") {
             console.error(error);
             res.status(401).sendFile(path.join(__dirname, "/pages/token-expired.html"));
@@ -136,23 +156,23 @@ app.post("/password-reset/:token", async (req, res) => {
         }
         if (error) {
             console.error(error);
-            res.status(401).sendFile(path.join(__dirname + "/pages/invalid-token.html"));
+            res.status(401).sendFile(path.join(__dirname, "/pages/invalid-token.html"));
             return;
         }
-        const encrypted = await pass.encrypt(password);
-        const response = await db.updatePassword(decoded.id, encrypted);
-        if (!response.ok) {
-            res.status(response.error).send();
+        const encrypted = await Bun.password.hash(password, "bcrypt");
+        const response = await db.updatePassword((decoded as Token).id, encrypted);
+        if (response.error) {
+            res.status(500).send();
             return;
         }
-        res.status(200).send();
+        res.status(200).sendFile(path.join(__dirname, "/pages/successful-reset.html"));
     });
 });
 
 app.get("/logout", auth.refresh, async (req, res) => {
     const response = await db.deleteRefreshToken(req.body.token);
-    if (!response.ok) {
-        res.status(response.error).send();
+    if (response.error) {
+        res.status(500).send();
         return;
     }
     res.status(200).send();
@@ -160,11 +180,14 @@ app.get("/logout", auth.refresh, async (req, res) => {
 
 app.get("/refresh", auth.refresh, async (req, res) => {
     const response = await db.getRefreshToken(req.body.token);
-    if (!response.ok) {
-        res.status(response.error).send();
+    if (response.error) {
+        res.status(500).send();
         return;
     }
-    jwt.sign({ id: req.body.id }, process.env.ACCESS_TOKEN_KEY, { expiresIn: 900 }, (error, accessToken) => {
+    if (!response.result) {
+        res.status(401).send();
+    }
+    jwt.sign({ id: req.body.id }, process.env.ACCESS_TOKEN_KEY!, { expiresIn: 900 }, (error, accessToken) => {
         if (error) {
             console.error(error);
             res.status(500).send();
@@ -184,12 +207,14 @@ app.get("/verify", async (req, res) => {
 // Account
 app.get("/account", async (req, res) => {
     const response = await db.getAccount(req.body.id);
-    if (!response.ok) {
-        res.status(response.error).send();
+    if (response.error) {
+        res.status(500).send();
         return;
     }
-    delete response.result.id;
-    delete response.result.password;
+    if (!response.result) {
+        res.status(404).send();
+        return;
+    }
     res.status(200).send(response.result);
 });
 
@@ -200,8 +225,8 @@ app.put("/account", async (req, res) => {
         return;
     }
     const response = await db.updateAccount(req.body.id, name, birthday, address);
-    if (!response.ok) {
-        res.status(response.error).send();
+    if (response.error) {
+        res.status(500).send();
         return;
     }
     res.status(200).send();
@@ -214,11 +239,14 @@ app.delete("/account", async (req, res) => {
 // Teacher
 app.get("/teacher", async (req, res) => {
     const response = await db.getTeacher(req.body.id);
-    if (!response.ok) {
-        res.status(response.error).send();
+    if (response.error) {
+        res.status(500).send();
         return;
     }
-    delete response.result.id;
+    if (!response.result) {
+        res.status(404).send();
+        return;
+    }
     res.status(200).send(response.result);
 });
 
@@ -228,9 +256,9 @@ app.put("/teacher", async (req, res) => {
         res.status(400).send();
         return;
     }
-    const response = await db.updateTeacher();
-    if (!response.ok) {
-        res.status(response.error).send();
+    const response = await db.updateTeacher(req.body.id, description, profile_picture);
+    if (response.error) {
+        res.status(500).send();
         return;
     }
     res.status(200).send();
