@@ -1,2 +1,2 @@
 GET http://localhost/account
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MzMsImlhdCI6MTcxMTY2MzY5OSwiZXhwIjoxNzExNjY0NTk5fQ.KU748dBFC5vv_idyOq-RC-u3FMlXyen_PEfRH_oYOc0
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MzMsImlhdCI6MTcxMjE3NzA0MSwiZXhwIjoxNzEyMTc3OTQxfQ.fkeismsh9wJTFC_L5-M7BHuZg-1VM5UZ2v-ozVUsWdE

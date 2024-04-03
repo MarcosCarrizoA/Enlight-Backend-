@@ -1,4 +1,3 @@
-require("dotenv").config();
 const fs = require("fs");
 const admZip = require("adm-zip");
 function update() {
@@ -10,7 +9,7 @@ function update() {
     });
     const formData = new FormData();
     formData.append("zipFile", new Blob([zip.toBuffer()], { type: "application/zip" }), "zip.zip");
-    fetch(`http://${process.env.SERVER_IP_ADDRESS}:3000`, {
+    fetch(`http://${Bun.env.SERVER_IP_ADDRESS}:3000`, {
         method: "POST",
         body: formData
     }).then(response => response.text().then(result => console.log(result))).catch((error) => console.log(error));

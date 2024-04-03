@@ -1,56 +1,37 @@
-import dotenv from "dotenv";
-import type { Request, Response } from "express";
-import jwt, { type JwtPayload } from "jsonwebtoken";
+import type { MiddlewareHandler } from "hono/types";
+import token from "../Token";
 
-dotenv.config();
-
-export interface Token extends JwtPayload {
-    id: number;
+const authenticate: MiddlewareHandler = async (c, next) => {
+    const authHeader = c.req.header("Authorization");
+    const accessToken = authHeader?.split("Bearer ")[1];
+    if (!accessToken) {
+        c.status(400);
+        return c.text("");
+    }
+    const decoded = await token.decodeAccessToken(accessToken!);
+    if (!decoded) {
+        c.status(401);
+        return c.text("");
+    }
+    c.set("id", decoded);
+    await next();
 }
 
-function authenticate(req: Request, res: Response, next: Function) {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) {
-        res.status(400).send();
-        return;
+const refresh: MiddlewareHandler = async (c, next) => {
+    const authHeader = c.req.header("Authorization");
+    const refreshToken = authHeader?.split("Bearer ")[1];
+    if (!refreshToken) {
+        c.status(400);
+        return c.text("");
     }
-    const token: string | undefined = authHeader.split("Bearer ")[1];
-    if (!token) {
-        res.status(400).send();
-        return;
+    const decoded = await token.decodeRefreshToken(refreshToken!);
+    if (!decoded) {
+        c.status(401);
+        return c.text("");
     }
-    jwt.verify(token, process.env.ACCESS_TOKEN_KEY!, (error, decoded) => {
-        if (error) {
-            console.error(error);
-            res.status(401).send();
-            return;
-        }
-        req.body.id = (decoded as Token).id;
-        next();
-    });
-}
-
-function refresh(req: Request, res: Response, next: Function) {
-    const authHeader = req.headers.authorization;
-    if (authHeader == undefined) {
-        res.status(400).send();
-        return;
-    }
-    const token = authHeader.split("Bearer ")[1];
-    if (token == undefined) {
-        res.status(400).send();
-        return;
-    }
-    jwt.verify(token, process.env.REFRESH_TOKEN_KEY!, (error, decoded) => {
-        if (error) {
-            console.error(error);
-            res.status(401).send();
-            return;
-        }
-        req.body.token = token;
-        req.body.id = (decoded as Token).id;
-        next();
-    });
+    c.set("token", refreshToken);
+    c.set("id", decoded);
+    await next();
 }
 
 export default { authenticate, refresh };

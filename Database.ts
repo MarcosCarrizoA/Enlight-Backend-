@@ -1,8 +1,5 @@
-import dotenv from "dotenv";
 import mysql from "mysql2";
 import type { Pool, PoolConnection, QueryError, ResultSetHeader, RowDataPacket } from "mysql2";
-
-dotenv.config();
 
 interface Credentials extends RowDataPacket {
     id: number;
@@ -50,8 +47,8 @@ export class Database {
         this.pool = mysql.createPool({
             host: "127.0.0.1",
             port: 3307,
-            user: process.env.DATABASE_USER,
-            password: process.env.DATABASE_PASSWORD,
+            user: Bun.env.DATABASE_USER,
+            password: Bun.env.DATABASE_PASSWORD,
             database: "enlight",
             connectionLimit: 3
         });

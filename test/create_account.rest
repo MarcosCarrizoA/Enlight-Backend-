@@ -5,7 +5,7 @@ Content-Type: application/json
     "email": "pedroramirezneira@gmail.com",
     "password": "pedro123",
     "name": "Pedro",
-    "birth_date": "2004-01-10",
+    "birthday": "2004-01-10",
     "address": "Pedro's House",
     "role": "student"
 }

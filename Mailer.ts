@@ -1,7 +1,4 @@
-import dotenv from "dotenv";
 import nodemailer, { type Transporter } from "nodemailer";
-
-dotenv.config();
 
 export class Mailer {
     private transporter;
@@ -11,8 +8,8 @@ export class Mailer {
             service: "gmail",
             secure: true,
             auth: {
-                user: process.env.MAIL_USER,
-                pass: process.env.MAIL_PASSWORD
+                user: Bun.env.MAIL_USER,
+                pass: Bun.env.MAIL_PASSWORD
             }
         });
     }
@@ -20,7 +17,7 @@ export class Mailer {
     async sendRegisterMail(name: string, email: string): Promise<boolean> {
         return new Promise((resolve) => {
             this.transporter.sendMail({
-                from: process.env.MAIL_USER,
+                from: Bun.env.MAIL_USER,
                 to: email,
                 subject: "Enlight Registration",
                 text: `Hi ${name}, thanks for signing in to Enlight! If you didn't do this action, click here to delete your account.`
