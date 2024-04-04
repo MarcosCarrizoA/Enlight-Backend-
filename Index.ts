@@ -54,6 +54,11 @@ app.post("/login", async (c) => {
         c.status(500);
         return c.text("");
     }
+    const result = await db.insertRefreshToken(refreshToken);
+    if (result.error) {
+        c.status(500);
+        return c.text("");
+    }
     return c.json({ access_token: accessToken, refresh_token: refreshToken });
 });
 
@@ -73,19 +78,11 @@ app.post("/account", async (c) => {
     const result = await mail.sendRegisterMail(name, email);
     if (!result) {
         connection!.rollback((error) => {
-            if (error) {
-                console.error(error);
-                connection!.release();
-                c.status(500);
-                return c.text("");
-            }
             connection!.release();
-            c.status(500);
-            return c.text("");
         });
+        c.status(500);
+        return c.text("");
     }
-    connection!.commit();
-    connection!.release();
     return c.text("");
 });
 
