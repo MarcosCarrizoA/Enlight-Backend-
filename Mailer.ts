@@ -1,7 +1,7 @@
 import nodemailer, { type Transporter } from "nodemailer";
 
 export class Mailer {
-    private transporter;
+    private transporter: Transporter;
 
     constructor() {
         this.transporter = nodemailer.createTransport({
