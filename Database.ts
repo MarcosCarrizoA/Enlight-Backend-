@@ -265,10 +265,10 @@ export class Database {
         });
     }
 
-    async getTeacher(id: number): Promise<DatabaseResponse<Teacher>> {
+    async getTeacher(accountId: number): Promise<DatabaseResponse<Teacher>> {
         return new Promise(async (resolve) => {
             try {
-                const result = await this.query<Teacher>("SELECT * FROM teacher WHERE id = (SELECT teacher_id FROM account_teacher WHERE account_id = ?)", [id]);
+                const result = await this.query<Teacher>("SELECT * FROM teacher WHERE id = (SELECT teacher_id FROM account_teacher WHERE account_id = ?)", [accountId]);
                 delete result[0].id;
                 resolve({ result: result[0] });
             } catch (error) {
@@ -330,6 +330,48 @@ export class Database {
                 resolve({ error: (error as QueryError).errno })
             }
         });
+    }
+
+    async getTeacherId(accountId: number): Promise<DatabaseResponse<ID>> {
+        return new Promise(async (resolve) => {
+            try {
+                const result = await this.query<ID>("SELECT id FROM account_teacher WHERE account_id = ?", [accountId]);
+                resolve({ result: result[0] });
+            } catch (error) {
+                resolve({ error: (error as QueryError).errno });
+            }
+        });
+    }
+
+    async createSubject(teacherId: number, categoryId: number, name: string, description: string): Promise<DatabaseResponse<null>> {
+        return new Promise(async (resolve) => {
+            try {
+                const result = await this.multiTransaction(
+                    [
+                        {
+                            sql: "INSERT INTO subject VALUES (NULL, ?, ?)",
+                            values: [name, description]
+                        }
+                    ],
+                    [
+                        {
+                            sql: "INSERT INTO teacher_subject (subject_id, teacher_id) VALUES (?, ?)",
+                            values: [teacherId],
+                            previousInsert: [[0, 0]]
+                        }
+                    ]
+                )
+                result.commit((error) => {
+                    if (error) {
+                        throw error;
+                    }
+                    result.release();
+                    resolve({});
+                })
+            } catch (error) {
+                resolve({error: (error as QueryError).errno});
+            }
+        })
     }
 }
 

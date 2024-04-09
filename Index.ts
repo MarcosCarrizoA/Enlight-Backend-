@@ -87,6 +87,10 @@ app.post("/account", async (c) => {
         c.status(500);
         return c.text("");
     }
+    connection!.commit((error) => {
+        connection!.rollback((error) => null);
+        connection!.release();
+    });
     return c.text("");
 });
 
@@ -231,7 +235,7 @@ app.delete("/account", async (context) => {
 
 // Teacher
 app.get("/teacher", async (c) => {
-    const id = await c.get("id");
+    const id = c.get("id");
     const response = await db.getTeacher(id);
     if (response.error) {
         c.status(500);
@@ -258,6 +262,18 @@ app.put("/teacher", async (c) => {
         return c.text("");
     }
     return c.text("");
+});
+
+// Subject
+app.post("/subject", async (c) => {
+    const { category_name, name, description } = await c.req.json();
+    if (!category_name || !name || !description) {
+        c.status(400);
+        return c.text("");
+    }
+    const id = c.get("id");
+    // const result = await db.createSubject()
+    return c.text("")
 });
 
 Bun.serve({
