@@ -320,6 +320,17 @@ export class Database {
             }
         });
     }
+
+    async deleteAccount(id: number): Promise<DatabaseResponse<null>> {
+        return new Promise(async (resolve) => {
+            try {
+                await this.transaction("DELETE FROM account WHERE id = ?", [id]);
+                resolve({});
+            } catch (error) {
+                resolve({ error: (error as QueryError).errno })
+            }
+        });
+    }
 }
 
 export default function database(): Database {

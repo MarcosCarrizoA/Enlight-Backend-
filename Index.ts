@@ -28,6 +28,10 @@ app.get("/test", (c) => {
     return c.text("API is running correctly.");
 });
 
+app.get("/sasi", (c) => {
+    return c.text("hola")
+})
+
 app.post("/login", async (c) => {
     const { email, password } = await c.req.json();
     if (!email || !password) {
@@ -215,8 +219,14 @@ app.put("/account", async (c) => {
     return c.text("");
 });
 
-app.delete("/account", async (c) => {
-
+app.delete("/account", async (context) => {
+    const id = context.get("id")
+    const response = await db.deleteAccount(id);
+    if (response.error) {
+        context.status(500);
+        return context.text("");
+    }
+    return context.text("");
 });
 
 // Teacher
