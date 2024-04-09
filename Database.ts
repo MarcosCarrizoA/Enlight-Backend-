@@ -268,7 +268,7 @@ export class Database {
     async getTeacher(accountId: number): Promise<DatabaseResponse<Teacher>> {
         return new Promise(async (resolve) => {
             try {
-                const result = await this.query<Teacher>("SELECT description, profile_picture, name, address FROM teacher INNER JOIN account_teacher ON teacher.id = account_teacher.teacher_id INNER JOIN account ON account_teacher.account_id = account.id WHERE account.id = ?", [id]);
+                const result = await this.query<Teacher>("SELECT description, profile_picture, name, address FROM teacher INNER JOIN account_teacher ON teacher.id = account_teacher.teacher_id INNER JOIN account ON account_teacher.account_id = account.id WHERE account.id = ?", [accountId]);
                 resolve({ result: result[0] });
             } catch (error) {
                 resolve({ error: (error as QueryError).errno });
