@@ -268,8 +268,8 @@ export class Database {
     async getTeacher(id: number): Promise<DatabaseResponse<Teacher>> {
         return new Promise(async (resolve) => {
             try {
-                const result = await this.query<Teacher>("SELECT * FROM teacher WHERE id = (SELECT teacher_id FROM account_teacher WHERE account_id = ?)", [id]);
-                delete result[0].id;
+                const result = await this.query<Teacher>("SELECT description, profile_picture, name, address FROM teacher INNER JOIN account_teacher ON teacher.id = account_teacher.teacher_id INNER JOIN account ON account_teacher.account_id = account.id WHERE account.id = ?", [id]);
+                
                 resolve({ result: result[0] });
             } catch (error) {
                 resolve({ error: (error as QueryError).errno });
