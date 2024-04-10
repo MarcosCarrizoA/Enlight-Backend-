@@ -74,15 +74,14 @@ app.post("/account", async (c) => {
         c.status(response.error == 1062 ? 409 : 500);
         return c.text("");
     }
-    const connection = response.result;
+    const connection = response.result!;
     const result = await mail.sendRegisterMail(name, email);
     if (!result) {
-        connection!.rollback((error) => {
-            connection!.release();
-        });
+        await db.cancelTransaction(connection);
         c.status(500);
         return c.text("");
     }
+    await db.completeTransaction(connection);
     return c.text("");
 });
 

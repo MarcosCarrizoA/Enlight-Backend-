@@ -171,6 +171,36 @@ export class Database {
         });
     }
 
+    async completeTransaction(connection: PoolConnection): Promise<DatabaseResponse<null>> {
+        return new Promise((resolve) => {
+            connection.commit((error) => {
+                if (error) {
+                    connection.rollback((error) => {
+                        if (error) {
+                            connection.release();
+                            resolve({ error: error.errno });
+                        }
+                    });
+                    connection.release();
+                    resolve({ error: error.errno });
+                }
+                resolve({});
+            });
+        });
+    }
+
+    async cancelTransaction(connection: PoolConnection): Promise<DatabaseResponse<null>> {
+        return new Promise((resolve) => {
+            connection.rollback((error) => {
+                if (error) {
+                    connection.release();
+                    resolve({ error: error.errno });
+                }
+                resolve({});
+            });
+        });
+    }
+
     async getCredentials(email: string): Promise<DatabaseResponse<Credentials>> {
         return new Promise(async (resolve) => {
             try {
