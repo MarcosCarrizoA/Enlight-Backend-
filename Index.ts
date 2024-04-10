@@ -28,6 +28,10 @@ app.get("/test", (c) => {
     return c.text("API is running correctly.");
 });
 
+app.get("/sasi", (c) => {
+    return c.text("hola")
+})
+
 app.post("/login", async (c) => {
     const { email, password } = await c.req.json();
     if (!email || !password) {
@@ -59,7 +63,7 @@ app.post("/login", async (c) => {
         c.status(500);
         return c.text("");
     }
-    return c.json({ access_token: accessToken, refresh_token: refreshToken });
+    return c.json({ access_token: accessToken, refresh_token: refreshToken, role: response.result.role_id });
 });
 
 app.post("/account", async (c) => {
@@ -214,13 +218,19 @@ app.put("/account", async (c) => {
     return c.text("");
 });
 
-app.delete("/account", async (c) => {
-
+app.delete("/account", async (context) => {
+    const id = context.get("id")
+    const response = await db.deleteAccount(id);
+    if (response.error) {
+        context.status(500);
+        return context.text("");
+    }
+    return context.text("");
 });
 
 // Teacher
 app.get("/teacher", async (c) => {
-    const id = await c.get("id");
+    const id = c.get("id");
     const response = await db.getTeacher(id);
     if (response.error) {
         c.status(500);
@@ -247,6 +257,49 @@ app.put("/teacher", async (c) => {
         return c.text("");
     }
     return c.text("");
+});
+
+app.get("/student", async (c) => {
+    const id = c.get("id");
+    const response = await db.getStudent(id);
+    if (response.error) {
+        c.status(500);
+        return c.text("");
+    }
+    if (!response.result) {
+        c.status(404);
+        return c.text("");
+    }
+    c.status(200);
+    return c.json(response.result);
+});
+
+app.put("/student", async (c) => {
+    const { profile_picture } = await c.req.json();
+    if (profile_picture == undefined) {
+        c.status(400);
+        return c.text("");
+    }
+    const id = c.get("id");
+    const response = await db.updateStudent(id, profile_picture);
+    if (response.error) {
+        c.status(500);
+        return c.text("");
+    }
+    return c.text("");
+});
+
+
+// Subject
+app.post("/subject", async (c) => {
+    const { category_name, name, description } = await c.req.json();
+    if (!category_name || !name || !description) {
+        c.status(400);
+        return c.text("");
+    }
+    const id = c.get("id");
+    // const result = await db.createSubject()
+    return c.text("")
 });
 
 Bun.serve({

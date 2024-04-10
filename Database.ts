@@ -25,6 +25,11 @@ interface Teacher extends RowDataPacket {
     profile_picture: Blob;
 }
 
+interface Student extends RowDataPacket {
+    id?: number;
+    profile_picture: Blob;
+}
+
 interface ID extends RowDataPacket {
     id: number;
 }
@@ -204,7 +209,7 @@ export class Database {
     async getCredentials(email: string): Promise<DatabaseResponse<Credentials>> {
         return new Promise(async (resolve) => {
             try {
-                const result = await this.query<Credentials>("SELECT id, password FROM account WHERE email = ?", [email]);
+                const result = await this.query<Credentials>("SELECT id, password, role_id FROM account INNER JOIN account_role on account.id = account_role.account_id WHERE email  = ?", [email]);
                 resolve({ result: result[0] });
             } catch (error) {
                 resolve({ error: (error as QueryError).errno });
@@ -264,6 +269,16 @@ export class Database {
                         values: [],
                         previousInsert: [[1, 1], [0, 0]]
                     });
+                } else {
+                    secondSet.push({
+                        sql: "INSERT INTO student VALUES (NULL, '')",
+                        values: []
+                    });
+                    thirdSet.push({
+                        sql: "INSERT INTO account_student VALUES (?, ?)",
+                        values: [],
+                        previousInsert: [[1, 1], [0, 0]]
+                    });
                 }
                 const result = await this.multiTransaction(
                     [
@@ -295,11 +310,10 @@ export class Database {
         });
     }
 
-    async getTeacher(id: number): Promise<DatabaseResponse<Teacher>> {
+    async getTeacher(accountId: number): Promise<DatabaseResponse<Teacher>> {
         return new Promise(async (resolve) => {
             try {
-                const result = await this.query<Teacher>("SELECT * FROM teacher WHERE id = (SELECT teacher_id FROM account_teacher WHERE account_id = ?)", [id]);
-                delete result[0].id;
+                const result = await this.query<Teacher>("SELECT description, profile_picture, name, address FROM teacher INNER JOIN account_teacher ON teacher.id = account_teacher.teacher_id INNER JOIN account ON account_teacher.account_id = account.id WHERE account.id = ?", [accountId]);
                 resolve({ result: result[0] });
             } catch (error) {
                 resolve({ error: (error as QueryError).errno });
@@ -311,6 +325,28 @@ export class Database {
         return new Promise(async (resolve) => {
             try {
                 await this.transaction("UPDATE teacher SET description = ?, profile_picture = ? WHERE id = (SELECT teacher_id FROM account_teacher WHERE account_id = ?)", [description, profile_picture, id]);
+                resolve({});
+            } catch (error) {
+                resolve({ error: (error as QueryError).errno });
+            }
+        });
+    }
+
+    async getStudent(accountId: number): Promise<DatabaseResponse<Student>> {
+        return new Promise(async (resolve) => {
+            try {
+                const result = await this.query<Teacher>("SELECT profile_picture, name, address FROM student INNER JOIN account_student ON student.id = account_student.student_id INNER JOIN account ON account_student.account_id = account.id WHERE account.id = ?", [accountId]);
+                resolve({ result: result[0] });
+            } catch (error) {
+                resolve({ error: (error as QueryError).errno });
+            }
+        });
+    }
+
+    async updateStudent(id: number, profile_picture: Blob): Promise<DatabaseResponse<null>> {
+        return new Promise(async (resolve) => {
+            try {
+                await this.transaction("UPDATE student SET profile_picture = ? WHERE id = (SELECT student_id FROM account_student WHERE account_id = ?)", [profile_picture, id]);
                 resolve({});
             } catch (error) {
                 resolve({ error: (error as QueryError).errno });
@@ -349,6 +385,59 @@ export class Database {
                 resolve({ error: (error as QueryError).errno });
             }
         });
+    }
+
+    async deleteAccount(id: number): Promise<DatabaseResponse<null>> {
+        return new Promise(async (resolve) => {
+            try {
+                await this.transaction("DELETE FROM account WHERE id = ?", [id]);
+                resolve({});
+            } catch (error) {
+                resolve({ error: (error as QueryError).errno })
+            }
+        });
+    }
+
+    async getTeacherId(accountId: number): Promise<DatabaseResponse<ID>> {
+        return new Promise(async (resolve) => {
+            try {
+                const result = await this.query<ID>("SELECT id FROM account_teacher WHERE account_id = ?", [accountId]);
+                resolve({ result: result[0] });
+            } catch (error) {
+                resolve({ error: (error as QueryError).errno });
+            }
+        });
+    }
+
+    async createSubject(teacherId: number, categoryId: number, name: string, description: string): Promise<DatabaseResponse<null>> {
+        return new Promise(async (resolve) => {
+            try {
+                const result = await this.multiTransaction(
+                    [
+                        {
+                            sql: "INSERT INTO subject VALUES (NULL, ?, ?)",
+                            values: [name, description]
+                        }
+                    ],
+                    [
+                        {
+                            sql: "INSERT INTO teacher_subject (subject_id, teacher_id) VALUES (?, ?)",
+                            values: [teacherId],
+                            previousInsert: [[0, 0]]
+                        }
+                    ]
+                )
+                result.commit((error) => {
+                    if (error) {
+                        throw error;
+                    }
+                    result.release();
+                    resolve({});
+                })
+            } catch (error) {
+                resolve({error: (error as QueryError).errno});
+            }
+        })
     }
 }
 
