@@ -63,7 +63,7 @@ app.post("/login", async (c) => {
         c.status(500);
         return c.text("");
     }
-    return c.json({ access_token: accessToken, refresh_token: refreshToken });
+    return c.json({ access_token: accessToken, refresh_token: refreshToken, role: response.result.role_id });
 });
 
 app.post("/account", async (c) => {
@@ -263,6 +263,37 @@ app.put("/teacher", async (c) => {
     }
     return c.text("");
 });
+
+app.get("/student", async (c) => {
+    const id = c.get("id");
+    const response = await db.getStudent(id);
+    if (response.error) {
+        c.status(500);
+        return c.text("");
+    }
+    if (!response.result) {
+        c.status(404);
+        return c.text("");
+    }
+    c.status(200);
+    return c.json(response.result);
+});
+
+app.put("/student", async (c) => {
+    const { profile_picture } = await c.req.json();
+    if (profile_picture == undefined) {
+        c.status(400);
+        return c.text("");
+    }
+    const id = c.get("id");
+    const response = await db.updateStudent(id, profile_picture);
+    if (response.error) {
+        c.status(500);
+        return c.text("");
+    }
+    return c.text("");
+});
+
 
 // Subject
 app.post("/subject", async (c) => {

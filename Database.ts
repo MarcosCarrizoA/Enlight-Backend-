@@ -25,6 +25,11 @@ interface Teacher extends RowDataPacket {
     profile_picture: Blob;
 }
 
+interface Student extends RowDataPacket {
+    id?: number;
+    profile_picture: Blob;
+}
+
 interface ID extends RowDataPacket {
     id: number;
 }
@@ -174,7 +179,7 @@ export class Database {
     async getCredentials(email: string): Promise<DatabaseResponse<Credentials>> {
         return new Promise(async (resolve) => {
             try {
-                const result = await this.query<Credentials>("SELECT id, password FROM account WHERE email = ?", [email]);
+                const result = await this.query<Credentials>("SELECT id, password, role_id FROM account INNER JOIN account_role on account.id = account_role.account_id WHERE email  = ?", [email]);
                 resolve({ result: result[0] });
             } catch (error) {
                 resolve({ error: (error as QueryError).errno });
@@ -234,6 +239,16 @@ export class Database {
                         values: [],
                         previousInsert: [[1, 1], [0, 0]]
                     });
+                } else {
+                    secondSet.push({
+                        sql: "INSERT INTO student VALUES (NULL, '')",
+                        values: []
+                    });
+                    thirdSet.push({
+                        sql: "INSERT INTO account_student VALUES (?, ?)",
+                        values: [],
+                        previousInsert: [[1, 1], [0, 0]]
+                    });
                 }
                 const result = await this.multiTransaction(
                     [
@@ -280,6 +295,28 @@ export class Database {
         return new Promise(async (resolve) => {
             try {
                 await this.transaction("UPDATE teacher SET description = ?, profile_picture = ? WHERE id = (SELECT teacher_id FROM account_teacher WHERE account_id = ?)", [description, profile_picture, id]);
+                resolve({});
+            } catch (error) {
+                resolve({ error: (error as QueryError).errno });
+            }
+        });
+    }
+
+    async getStudent(accountId: number): Promise<DatabaseResponse<Student>> {
+        return new Promise(async (resolve) => {
+            try {
+                const result = await this.query<Teacher>("SELECT profile_picture, name, address FROM student INNER JOIN account_student ON student.id = account_student.student_id INNER JOIN account ON account_student.account_id = account.id WHERE account.id = ?", [accountId]);
+                resolve({ result: result[0] });
+            } catch (error) {
+                resolve({ error: (error as QueryError).errno });
+            }
+        });
+    }
+
+    async updateStudent(id: number, profile_picture: Blob): Promise<DatabaseResponse<null>> {
+        return new Promise(async (resolve) => {
+            try {
+                await this.transaction("UPDATE student SET profile_picture = ? WHERE id = (SELECT student_id FROM account_student WHERE account_id = ?)", [profile_picture, id]);
                 resolve({});
             } catch (error) {
                 resolve({ error: (error as QueryError).errno });
