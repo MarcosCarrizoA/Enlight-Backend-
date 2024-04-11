@@ -409,9 +409,11 @@ export class Database {
         });
     }
 
-    async createSubject(teacherId: number, categoryId: number, name: string, description: string): Promise<DatabaseResponse<null>> {
+    async createSubject(accountId: number, categoryName: string, name: string, description: string): Promise<DatabaseResponse<null>> {
         return new Promise(async (resolve) => {
             try {
+                const teacherId = await this.query<ID>("SELECT teacher_id as id FROM account_teacher WHERE account_id = ?", [accountId]);
+                const categoryId = await this.query<ID>("SELECT id FROM category WHERE name = ?", [categoryName]);
                 const result = await this.multiTransaction(
                     [
                         {
@@ -422,22 +424,22 @@ export class Database {
                     [
                         {
                             sql: "INSERT INTO teacher_subject (subject_id, teacher_id) VALUES (?, ?)",
-                            values: [teacherId],
+                            values: [teacherId[0].id],
+                            previousInsert: [[0, 0]]
+                        },
+                        {
+                            sql: "INSERT INTO category_subject (subject_id, category_id) VALUES (?, ?)",
+                            values: [categoryId[0].id],
                             previousInsert: [[0, 0]]
                         }
                     ]
-                )
-                result.commit((error) => {
-                    if (error) {
-                        throw error;
-                    }
-                    result.release();
-                    resolve({});
-                })
+                );
+                await this.completeTransaction(result);
+                resolve({});
             } catch (error) {
-                resolve({error: (error as QueryError).errno});
+                resolve({ error: (error as QueryError).errno });
             }
-        })
+        });
     }
 }
 

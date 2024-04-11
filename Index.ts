@@ -259,6 +259,7 @@ app.put("/teacher", async (c) => {
     return c.text("");
 });
 
+// Student
 app.get("/student", async (c) => {
     const id = c.get("id");
     const response = await db.getStudent(id);
@@ -298,8 +299,12 @@ app.post("/subject", async (c) => {
         return c.text("");
     }
     const id = c.get("id");
-    // const result = await db.createSubject()
-    return c.text("")
+    const response = await db.createSubject(id, category_name, name, description);
+    if (response.error) {
+        c.status(500);
+        return c.text("");
+    }
+    return c.text("");
 });
 
 Bun.serve({

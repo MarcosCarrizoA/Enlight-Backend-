@@ -1,0 +1,9 @@
+POST http://localhost/subject
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTYwLCJpYXQiOjE3MTI4NzExNzAsImV4cCI6MTcxMjg3MjA3MH0.DzIKq5zd2zM44rPuJCY_9qfR80PFQ_2D-t9QATBj7-Y
+Content-Type: application/json
+
+{
+    "category_name": "Theology",
+    "name": "si",
+    "description": "si"
+}

@@ -5,7 +5,7 @@ const authenticate: MiddlewareHandler = async (c, next) => {
     const authHeader = c.req.header("Authorization");
     const accessToken = authHeader?.split("Bearer ")[1];
     if (!accessToken) {
-        c.status(400);
+        c.status(401);
         return c.text("");
     }
     const decoded = await token.decodeAccessToken(accessToken!);
@@ -21,7 +21,7 @@ const refresh: MiddlewareHandler = async (c, next) => {
     const authHeader = c.req.header("Authorization");
     const refreshToken = authHeader?.split("Bearer ")[1];
     if (!refreshToken) {
-        c.status(400);
+        c.status(401);
         return c.text("");
     }
     const decoded = await token.decodeRefreshToken(refreshToken!);
