@@ -22,7 +22,8 @@ interface Account extends RowDataPacket {
 interface Teacher extends RowDataPacket {
     id?: number;
     description: string;
-    profile_picture: Blob;
+    profile_picture?: Buffer;
+    picture: string;
 }
 
 interface Student extends RowDataPacket {
@@ -42,6 +43,7 @@ type DatabaseResponse<T> = {
 type Subtransaction = {
     sql: string;
     values: any[];
+    /** Insert ID of previous subtransaction to be inserted as the first value parameter. */
     previousInsert?: number[][];
 }
 
@@ -313,6 +315,7 @@ export class Database {
     async getTeacher(accountId: number): Promise<DatabaseResponse<Teacher>> {
         return new Promise(async (resolve) => {
             try {
+                const teacherId = await this.getTeacherId(accountId);
                 const result = await this.query<Teacher>("SELECT description, profile_picture, name, address FROM teacher INNER JOIN account_teacher ON teacher.id = account_teacher.teacher_id INNER JOIN account ON account_teacher.account_id = account.id WHERE account.id = ?", [accountId]);
                 resolve({ result: result[0] });
             } catch (error) {
@@ -321,7 +324,7 @@ export class Database {
         });
     }
 
-    async updateTeacher(id: number, description: string, profile_picture: Blob): Promise<DatabaseResponse<null>> {
+    async updateTeacher(id: number, description: string, profile_picture: Buffer): Promise<DatabaseResponse<null>> {
         return new Promise(async (resolve) => {
             try {
                 await this.transaction("UPDATE teacher SET description = ?, profile_picture = ? WHERE id = (SELECT teacher_id FROM account_teacher WHERE account_id = ?)", [description, profile_picture, id]);
@@ -335,7 +338,7 @@ export class Database {
     async getStudent(accountId: number): Promise<DatabaseResponse<Student>> {
         return new Promise(async (resolve) => {
             try {
-                const result = await this.query<Teacher>("SELECT profile_picture, name, address FROM student INNER JOIN account_student ON student.id = account_student.student_id INNER JOIN account ON account_student.account_id = account.id WHERE account.id = ?", [accountId]);
+                const result = await this.query<Student>("SELECT profile_picture, name, address FROM student INNER JOIN account_student ON student.id = account_student.student_id INNER JOIN account ON account_student.account_id = account.id WHERE account.id = ?", [accountId]);
                 resolve({ result: result[0] });
             } catch (error) {
                 resolve({ error: (error as QueryError).errno });

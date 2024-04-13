@@ -136,7 +136,6 @@ app.post("/password-reset/:token", async (c) => {
     if (decoded.error) {
         const file = Bun.file(decoded.error == "TokenExpiredError" ? "./pages/token-expired.html" : "./pages/invalid-token.html");
         const text = await file.text();
-        // c.status(401).sendFile(path.join(__dirname, "/pages/invalid-token.html"));
         c.status(401);
         return c.html(text);
     }
@@ -240,7 +239,10 @@ app.get("/teacher", async (c) => {
         c.status(404);
         return c.text("");
     }
-    c.status(200);
+    const buffer = response.result.profile_picture!;
+    delete response.result.profile_picture;
+    const base64 = buffer.toString("base64");
+    response.result.picture = base64;
     return c.json(response.result);
 });
 
@@ -251,7 +253,8 @@ app.put("/teacher", async (c) => {
         return c.text("");
     }
     const id = c.get("id");
-    const response = await db.updateTeacher(id, description, profile_picture);
+    const buffer = Buffer.from(profile_picture, "base64");
+    const response = await db.updateTeacher(id, description, buffer);
     if (response.error) {
         c.status(500);
         return c.text("");
