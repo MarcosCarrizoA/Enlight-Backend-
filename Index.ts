@@ -28,10 +28,6 @@ app.get("/test", (c) => {
     return c.text("API is running correctly.");
 });
 
-app.get("/sasi", (c) => {
-    return c.text("hola")
-})
-
 app.post("/login", async (c) => {
     const { email, password } = await c.req.json();
     if (!email || !password) {
@@ -225,6 +221,49 @@ app.delete("/account", async (context) => {
         return context.text("");
     }
     return context.text("");
+});
+
+// Picture
+app.post("/account/picture", async (c) => {
+    const { data } = await c.req.json();
+    if (!data) {
+        c.status(400);
+        return c.text("");
+    }
+    const id = c.get("id");
+    const buffer = Buffer.from(data, "base64");
+    const response = await db.createPicture(id, buffer);
+    if (response.error) {
+        c.status(500);
+        return c.text("");
+    }
+    return c.text("");
+});
+
+app.put("/account/picture", async (c) => {
+    const { data } = await c.req.json();
+    if (!data) {
+        c.status(400);
+        return c.text("");
+    }
+    const id = c.get("id");
+    const buffer = Buffer.from(data, "base64");
+    const response = await db.updatePicture(id, buffer);
+    if (response.error) {
+        c.status(500);
+        return c.text("");
+    }
+    return c.text("");
+});
+
+app.delete("/account/picture", async (c) => {
+    const id = c.get("id");
+    const response = await db.deletePicture(id);
+    if (response.error) {
+        c.status(500);
+        return c.text("");
+    }
+    return c.text("");
 });
 
 // Teacher

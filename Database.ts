@@ -444,6 +444,55 @@ export class Database {
             }
         });
     }
+
+    async createPicture(accountId: number, data: Buffer): Promise<DatabaseResponse<null>> {
+        return new Promise(async (resolve) => {
+            try {
+                const result = await this.multiTransaction(
+                    [
+                        {
+                            sql: "INSERT INTO picture VALUES (NULL, ?)",
+                            values: [data]
+                        }
+                    ],
+                    [
+                        {
+                            sql: "INSERT INTO account_picture (picture_id, account_id) VALUES (?, ?)",
+                            values: [accountId],
+                            previousInsert: [[0, 0]]
+                        }
+                    ]
+                );
+                await this.completeTransaction(result);
+            } catch (error) {
+                resolve({ error: (error as QueryError).errno });
+            }
+        });
+    }
+
+    async updatePicture(accountId: number, data: Buffer): Promise<DatabaseResponse<null>> {
+        return new Promise(async (resolve) => {
+            try {
+                const pictureId = await this.query<ID>("SELECT picture_id FROM account_picture WHERE account_id = ?", [accountId]);
+                await this.transaction("UPDATE picture SET data = ? WHERE id = ", [data, pictureId]);
+                resolve({});
+            } catch (error) {
+                resolve({ error: (error as QueryError).errno });
+            }
+        });
+    }
+
+    async deletePicture(accountId: number): Promise<DatabaseResponse<null>> {
+        return new Promise(async (resolve) => {
+            try {
+                const pictureId = await this.query<ID>("SELECT picture_id FROM account_picture WHERE account_id = ?", [accountId]);
+                await this.transaction("DELETE FROM picture WHERE id = ?", [pictureId]);
+                resolve({});
+            } catch (error) {
+                resolve({ error: (error as QueryError).errno });
+            }
+        });
+    }
 }
 
 export default function database(): Database {
