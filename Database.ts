@@ -11,12 +11,15 @@ interface Token extends RowDataPacket {
 }
 
 interface Account extends RowDataPacket {
-    id?: number;
     email: string;
-    password?: string;
     name: string;
     birthday: Date;
     address: string;
+    picture?: string;
+}
+
+interface Picture extends RowDataPacket {
+    picture: Buffer;
 }
 
 interface Teacher extends RowDataPacket {
@@ -53,7 +56,7 @@ export class Database {
     constructor() {
         this.pool = mysql.createPool({
             host: "127.0.0.1",
-            port: 3307,
+            port: parseInt(Bun.env.DATABASE_PORT!),
             user: Bun.env.DATABASE_USER,
             password: Bun.env.DATABASE_PASSWORD,
             database: "enlight",
@@ -61,6 +64,7 @@ export class Database {
         });
     }
 
+    // Elemental operations
     private async query<T extends RowDataPacket>(sql: string, values: any[]): Promise<T[]> {
         return new Promise((resolve, reject) => {
             this.pool.getConnection((error, connection) => {
@@ -208,6 +212,7 @@ export class Database {
         });
     }
 
+    // Authentication
     async getCredentials(email: string): Promise<DatabaseResponse<Credentials>> {
         return new Promise(async (resolve) => {
             try {
@@ -230,17 +235,6 @@ export class Database {
         });
     }
 
-    async deleteRefreshToken(token: string): Promise<DatabaseResponse<null>> {
-        return new Promise(async (resolve) => {
-            try {
-                await this.transaction("DELETE FROM refresh_token WHERE token = ?", [token]);
-                resolve({});
-            } catch (error) {
-                resolve({ error: (error as QueryError).errno });
-            }
-        });
-    }
-
     async getRefreshToken(token: string): Promise<DatabaseResponse<Token>> {
         return new Promise(async (resolve) => {
             try {
@@ -252,6 +246,18 @@ export class Database {
         });
     }
 
+    async deleteRefreshToken(token: string): Promise<DatabaseResponse<null>> {
+        return new Promise(async (resolve) => {
+            try {
+                await this.transaction("DELETE FROM refresh_token WHERE token = ?", [token]);
+                resolve({});
+            } catch (error) {
+                resolve({ error: (error as QueryError).errno });
+            }
+        });
+    }
+
+    // Account
     async createAccount(email: string, password: string, name: string, birthday: string, address: string, role: string): Promise<DatabaseResponse<PoolConnection>> {
         return new Promise(async (resolve) => {
             try {
@@ -304,53 +310,8 @@ export class Database {
             try {
                 const result = await this.query<Account>("SELECT * FROM account WHERE id = ?", [id]);
                 delete result[0].id;
-                delete result[0].password
+                delete result[0].password;
                 resolve({ result: result[0] });
-            } catch (error) {
-                resolve({ error: (error as QueryError).errno });
-            }
-        });
-    }
-
-    async getTeacher(accountId: number): Promise<DatabaseResponse<Teacher>> {
-        return new Promise(async (resolve) => {
-            try {
-                const teacherId = await this.getTeacherId(accountId);
-                const result = await this.query<Teacher>("SELECT description, profile_picture, name, address FROM teacher INNER JOIN account_teacher ON teacher.id = account_teacher.teacher_id INNER JOIN account ON account_teacher.account_id = account.id WHERE account.id = ?", [accountId]);
-                resolve({ result: result[0] });
-            } catch (error) {
-                resolve({ error: (error as QueryError).errno });
-            }
-        });
-    }
-
-    async updateTeacher(id: number, description: string, profile_picture: Buffer): Promise<DatabaseResponse<null>> {
-        return new Promise(async (resolve) => {
-            try {
-                await this.transaction("UPDATE teacher SET description = ?, profile_picture = ? WHERE id = (SELECT teacher_id FROM account_teacher WHERE account_id = ?)", [description, profile_picture, id]);
-                resolve({});
-            } catch (error) {
-                resolve({ error: (error as QueryError).errno });
-            }
-        });
-    }
-
-    async getStudent(accountId: number): Promise<DatabaseResponse<Student>> {
-        return new Promise(async (resolve) => {
-            try {
-                const result = await this.query<Student>("SELECT profile_picture, name, address FROM student INNER JOIN account_student ON student.id = account_student.student_id INNER JOIN account ON account_student.account_id = account.id WHERE account.id = ?", [accountId]);
-                resolve({ result: result[0] });
-            } catch (error) {
-                resolve({ error: (error as QueryError).errno });
-            }
-        });
-    }
-
-    async updateStudent(id: number, profile_picture: Blob): Promise<DatabaseResponse<null>> {
-        return new Promise(async (resolve) => {
-            try {
-                await this.transaction("UPDATE student SET profile_picture = ? WHERE id = (SELECT student_id FROM account_student WHERE account_id = ?)", [profile_picture, id]);
-                resolve({});
             } catch (error) {
                 resolve({ error: (error as QueryError).errno });
             }
@@ -362,17 +323,6 @@ export class Database {
             try {
                 const result = await this.query<ID>("SELECT id FROM account WHERE email = ?", [email]);
                 resolve({ result: result[0] });
-            } catch (error) {
-                resolve({ error: (error as QueryError).errno });
-            }
-        });
-    }
-
-    async updatePassword(id: number, password: string): Promise<DatabaseResponse<null>> {
-        return new Promise(async (resolve) => {
-            try {
-                await this.transaction("UPDATE account SET password = ? WHERE id = ?", [password, id]);
-                resolve({});
             } catch (error) {
                 resolve({ error: (error as QueryError).errno });
             }
@@ -401,10 +351,69 @@ export class Database {
         });
     }
 
-    async getTeacherId(accountId: number): Promise<DatabaseResponse<ID>> {
+    // Picture
+    async insertPicture(accountId: number, picture: Buffer): Promise<DatabaseResponse<null>> {
         return new Promise(async (resolve) => {
             try {
-                const result = await this.query<ID>("SELECT id FROM account_teacher WHERE account_id = ?", [accountId]);
+                const pictureId = await this.query<ID>("SELECT picture_id as id FROM account_picture WHERE account_id = ?", [accountId]);
+                if (pictureId.length == 0) {
+                    const result = await this.multiTransaction(
+                        [
+                            {
+                                sql: "INSERT INTO picture VALUES (NULL, ?)",
+                                values: [picture]
+                            }
+                        ],
+                        [
+                            {
+                                sql: "INSERT INTO account_picture (picture_id, account_id) VALUES (?, ?)",
+                                values: [accountId],
+                                previousInsert: [[0, 0]]
+                            }
+                        ]
+                    )
+                    await this.completeTransaction(result);
+                    resolve({});
+                    return;
+                }
+                await this.transaction("UPDATE picture SET picture = ? WHERE id = ?", [picture, pictureId[0].id]);
+                resolve({});
+            } catch (error) {
+                console.error(error);
+                resolve({ error: (error as QueryError).errno });
+            }
+        });
+    }
+
+    async getPicture(accountId: number): Promise<DatabaseResponse<Picture>> {
+        return new Promise(async (resolve) => {
+            try {
+                const pictureId = await this.query<ID>("SELECT picture_id as id FROM account_picture WHERE account_id = ?", [accountId]);
+                const picture = await this.query<Picture>("SELECT picture FROM picture WHERE id = ?", [pictureId[0].id]);
+                resolve({ result: picture[0] });
+            } catch (error) {
+                resolve({ error: (error as QueryError).errno });
+            }
+        });
+    }
+
+    async deletePicture(accountId: number): Promise<DatabaseResponse<null>> {
+        return new Promise(async (resolve) => {
+            try {
+                const pictureId = await this.query<ID>("SELECT picture_id FROM account_picture WHERE account_id = ?", [accountId]);
+                await this.transaction("DELETE FROM picture WHERE id = ?", [pictureId]);
+                resolve({});
+            } catch (error) {
+                resolve({ error: (error as QueryError).errno });
+            }
+        });
+    }
+
+    // Teacher
+    async getTeacher(accountId: number): Promise<DatabaseResponse<Teacher>> {
+        return new Promise(async (resolve) => {
+            try {
+                const result = await this.query<Teacher>("SELECT description, profile_picture, name, address FROM teacher INNER JOIN account_teacher ON teacher.id = account_teacher.teacher_id INNER JOIN account ON account_teacher.account_id = account.id WHERE account.id = ?", [accountId]);
                 resolve({ result: result[0] });
             } catch (error) {
                 resolve({ error: (error as QueryError).errno });
@@ -412,6 +421,52 @@ export class Database {
         });
     }
 
+    async updateTeacher(id: number, description: string, profile_picture: Buffer): Promise<DatabaseResponse<null>> {
+        return new Promise(async (resolve) => {
+            try {
+                await this.transaction("UPDATE teacher SET description = ?, profile_picture = ? WHERE id = (SELECT teacher_id FROM account_teacher WHERE account_id = ?)", [description, profile_picture, id]);
+                resolve({});
+            } catch (error) {
+                resolve({ error: (error as QueryError).errno });
+            }
+        });
+    }
+
+    // Student
+    async getStudent(accountId: number): Promise<DatabaseResponse<Student>> {
+        return new Promise(async (resolve) => {
+            try {
+                const result = await this.query<Student>("SELECT profile_picture, name, address FROM student INNER JOIN account_student ON student.id = account_student.student_id INNER JOIN account ON account_student.account_id = account.id WHERE account.id = ?", [accountId]);
+                resolve({ result: result[0] });
+            } catch (error) {
+                resolve({ error: (error as QueryError).errno });
+            }
+        });
+    }
+
+    async updateStudent(id: number, profile_picture: Blob): Promise<DatabaseResponse<null>> {
+        return new Promise(async (resolve) => {
+            try {
+                await this.transaction("UPDATE student SET profile_picture = ? WHERE id = (SELECT student_id FROM account_student WHERE account_id = ?)", [profile_picture, id]);
+                resolve({});
+            } catch (error) {
+                resolve({ error: (error as QueryError).errno });
+            }
+        });
+    }
+
+    async updatePassword(id: number, password: string): Promise<DatabaseResponse<null>> {
+        return new Promise(async (resolve) => {
+            try {
+                await this.transaction("UPDATE account SET password = ? WHERE id = ?", [password, id]);
+                resolve({});
+            } catch (error) {
+                resolve({ error: (error as QueryError).errno });
+            }
+        });
+    }
+
+    // Subject
     async createSubject(accountId: number, categoryName: string, name: string, description: string): Promise<DatabaseResponse<null>> {
         return new Promise(async (resolve) => {
             try {
@@ -438,55 +493,6 @@ export class Database {
                     ]
                 );
                 await this.completeTransaction(result);
-                resolve({});
-            } catch (error) {
-                resolve({ error: (error as QueryError).errno });
-            }
-        });
-    }
-
-    async createPicture(accountId: number, data: Buffer): Promise<DatabaseResponse<null>> {
-        return new Promise(async (resolve) => {
-            try {
-                const result = await this.multiTransaction(
-                    [
-                        {
-                            sql: "INSERT INTO picture VALUES (NULL, ?)",
-                            values: [data]
-                        }
-                    ],
-                    [
-                        {
-                            sql: "INSERT INTO account_picture (picture_id, account_id) VALUES (?, ?)",
-                            values: [accountId],
-                            previousInsert: [[0, 0]]
-                        }
-                    ]
-                );
-                await this.completeTransaction(result);
-            } catch (error) {
-                resolve({ error: (error as QueryError).errno });
-            }
-        });
-    }
-
-    async updatePicture(accountId: number, data: Buffer): Promise<DatabaseResponse<null>> {
-        return new Promise(async (resolve) => {
-            try {
-                const pictureId = await this.query<ID>("SELECT picture_id FROM account_picture WHERE account_id = ?", [accountId]);
-                await this.transaction("UPDATE picture SET data = ? WHERE id = ", [data, pictureId]);
-                resolve({});
-            } catch (error) {
-                resolve({ error: (error as QueryError).errno });
-            }
-        });
-    }
-
-    async deletePicture(accountId: number): Promise<DatabaseResponse<null>> {
-        return new Promise(async (resolve) => {
-            try {
-                const pictureId = await this.query<ID>("SELECT picture_id FROM account_picture WHERE account_id = ?", [accountId]);
-                await this.transaction("DELETE FROM picture WHERE id = ?", [pictureId]);
                 resolve({});
             } catch (error) {
                 resolve({ error: (error as QueryError).errno });

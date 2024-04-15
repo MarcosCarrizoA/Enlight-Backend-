@@ -184,6 +184,7 @@ app.get("/verify", async (c) => {
 
 // Account
 app.get("/account", async (c) => {
+    const { include_picture } = c.req.query();
     const id = c.get("id");
     const response = await db.getAccount(id);
     if (response.error) {
@@ -193,6 +194,14 @@ app.get("/account", async (c) => {
     if (!response.result) {
         c.status(404);
         return c.text("");
+    }
+    if (include_picture == "true") {
+        const picture = await db.getPicture(id);
+        if (picture.error) {
+            c.status(500);
+            return c.text("");
+        }
+        response.result.picture = picture.result?.picture.toString("base64");
     }
     c.status(200);
     return c.json(response.result);
@@ -224,31 +233,15 @@ app.delete("/account", async (context) => {
 });
 
 // Picture
-app.post("/account/picture", async (c) => {
-    const { data } = await c.req.json();
-    if (!data) {
-        c.status(400);
-        return c.text("");
-    }
-    const id = c.get("id");
-    const buffer = Buffer.from(data, "base64");
-    const response = await db.createPicture(id, buffer);
-    if (response.error) {
-        c.status(500);
-        return c.text("");
-    }
-    return c.text("");
-});
-
 app.put("/account/picture", async (c) => {
-    const { data } = await c.req.json();
-    if (!data) {
+    const { picture } = await c.req.json();
+    if (!picture) {
         c.status(400);
         return c.text("");
     }
     const id = c.get("id");
-    const buffer = Buffer.from(data, "base64");
-    const response = await db.updatePicture(id, buffer);
+    const buffer = Buffer.from(picture, "base64");
+    const response = await db.insertPicture(id, buffer);
     if (response.error) {
         c.status(500);
         return c.text("");
