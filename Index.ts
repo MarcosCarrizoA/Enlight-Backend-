@@ -184,6 +184,7 @@ app.get("/verify", async (c) => {
 
 // Account
 app.get("/account", async (c) => {
+
     const { include_picture } = c.req.query();
     const id = c.get("id");
     const response = await db.getAccount(id);
@@ -194,6 +195,19 @@ app.get("/account", async (c) => {
     if (!response.result) {
         c.status(404);
         return c.text("");
+    }
+    const role = await db.getRole(id);
+    if (role.error) {
+        c.status(500);
+        return c.text("");
+    }
+    if (role.result?.name == "teacher") {
+        const teacher = await db.getTeacher(id);
+        if (teacher.error) {
+            c.status(500);
+            return c.text("");
+        }
+        response.result.teacher = teacher.result;
     }
     if (include_picture == "true") {
         const picture = await db.getPicture(id);
@@ -279,52 +293,19 @@ app.get("/teacher", async (c) => {
 });
 
 app.put("/teacher", async (c) => {
-    const { description, profile_picture } = await c.req.json();
-    if (description == undefined || profile_picture == undefined) {
+    const { description } = await c.req.json();
+    if (description == undefined) {
         c.status(400);
         return c.text("");
     }
     const id = c.get("id");
-    const buffer = Buffer.from(profile_picture, "base64");
-    const response = await db.updateTeacher(id, description, buffer);
+    const response = await db.updateTeacher(id, description);
     if (response.error) {
         c.status(500);
         return c.text("");
     }
     return c.text("");
 });
-
-// Student
-app.get("/student", async (c) => {
-    const id = c.get("id");
-    const response = await db.getStudent(id);
-    if (response.error) {
-        c.status(500);
-        return c.text("");
-    }
-    if (!response.result) {
-        c.status(404);
-        return c.text("");
-    }
-    c.status(200);
-    return c.json(response.result);
-});
-
-app.put("/student", async (c) => {
-    const { profile_picture } = await c.req.json();
-    if (profile_picture == undefined) {
-        c.status(400);
-        return c.text("");
-    }
-    const id = c.get("id");
-    const response = await db.updateStudent(id, profile_picture);
-    if (response.error) {
-        c.status(500);
-        return c.text("");
-    }
-    return c.text("");
-});
-
 
 // Subject
 app.post("/subject", async (c) => {

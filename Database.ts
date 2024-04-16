@@ -16,6 +16,7 @@ interface Account extends RowDataPacket {
     birthday: Date;
     address: string;
     picture?: string;
+    teacher?: Teacher
 }
 
 interface Picture extends RowDataPacket {
@@ -25,17 +26,15 @@ interface Picture extends RowDataPacket {
 interface Teacher extends RowDataPacket {
     id?: number;
     description: string;
-    profile_picture?: Buffer;
-    picture: string;
-}
-
-interface Student extends RowDataPacket {
-    id?: number;
-    profile_picture: Blob;
 }
 
 interface ID extends RowDataPacket {
     id: number;
+}
+
+interface Role extends RowDataPacket {
+    id?: number;
+    name: string;
 }
 
 type DatabaseResponse<T> = {
@@ -269,21 +268,11 @@ export class Database {
                 const thirdSet = [];
                 if (role == "teacher") {
                     secondSet.push({
-                        sql: "INSERT INTO teacher VALUES (NULL, '', '')",
+                        sql: "INSERT INTO teacher VALUES (NULL, '')",
                         values: []
                     });
                     thirdSet.push({
                         sql: "INSERT INTO account_teacher VALUES (?, ?)",
-                        values: [],
-                        previousInsert: [[1, 1], [0, 0]]
-                    });
-                } else {
-                    secondSet.push({
-                        sql: "INSERT INTO student VALUES (NULL, '')",
-                        values: []
-                    });
-                    thirdSet.push({
-                        sql: "INSERT INTO account_student VALUES (?, ?)",
                         values: [],
                         previousInsert: [[1, 1], [0, 0]]
                     });
@@ -351,6 +340,35 @@ export class Database {
         });
     }
 
+    // Password
+    async updatePassword(id: number, password: string): Promise<DatabaseResponse<null>> {
+        return new Promise(async (resolve) => {
+            try {
+                await this.transaction("UPDATE account SET password = ? WHERE id = ?", [password, id]);
+                resolve({});
+            } catch (error) {
+                resolve({ error: (error as QueryError).errno });
+            }
+        });
+    }
+
+    // Role
+    async getRole(accountId: number): Promise<DatabaseResponse<Role>> {
+        return new Promise(async (resolve) => {
+            try {
+                const roleId = await this.query<ID>("SELECT role_id as id FROM account_role WHERE account_id = ?", [accountId]);
+                const role = await this.query<Role>("SELECT * FROM role WHERE id = ?", [roleId[0].id]);
+
+                delete role[0].id;
+
+                resolve({ result: role[0] });
+            } catch (error) {
+
+                resolve({ error: (error as QueryError).errno });
+            }
+        });
+    }
+
     // Picture
     async insertPicture(accountId: number, picture: Buffer): Promise<DatabaseResponse<null>> {
         return new Promise(async (resolve) => {
@@ -379,7 +397,6 @@ export class Database {
                 await this.transaction("UPDATE picture SET picture = ? WHERE id = ?", [picture, pictureId[0].id]);
                 resolve({});
             } catch (error) {
-                console.error(error);
                 resolve({ error: (error as QueryError).errno });
             }
         });
@@ -413,7 +430,9 @@ export class Database {
     async getTeacher(accountId: number): Promise<DatabaseResponse<Teacher>> {
         return new Promise(async (resolve) => {
             try {
-                const result = await this.query<Teacher>("SELECT description, profile_picture, name, address FROM teacher INNER JOIN account_teacher ON teacher.id = account_teacher.teacher_id INNER JOIN account ON account_teacher.account_id = account.id WHERE account.id = ?", [accountId]);
+                const teacherId = await this.query<ID>("SELECT teacher_id as id FROM account_teacher WHERE account_id = ?", [accountId]);
+                const result = await this.query<Teacher>("SELECT * FROM teacher WHERE id = ?", [teacherId[0].id]);
+                delete result[0].id;
                 resolve({ result: result[0] });
             } catch (error) {
                 resolve({ error: (error as QueryError).errno });
@@ -421,44 +440,10 @@ export class Database {
         });
     }
 
-    async updateTeacher(id: number, description: string, profile_picture: Buffer): Promise<DatabaseResponse<null>> {
+    async updateTeacher(id: number, description: string): Promise<DatabaseResponse<null>> {
         return new Promise(async (resolve) => {
             try {
-                await this.transaction("UPDATE teacher SET description = ?, profile_picture = ? WHERE id = (SELECT teacher_id FROM account_teacher WHERE account_id = ?)", [description, profile_picture, id]);
-                resolve({});
-            } catch (error) {
-                resolve({ error: (error as QueryError).errno });
-            }
-        });
-    }
-
-    // Student
-    async getStudent(accountId: number): Promise<DatabaseResponse<Student>> {
-        return new Promise(async (resolve) => {
-            try {
-                const result = await this.query<Student>("SELECT profile_picture, name, address FROM student INNER JOIN account_student ON student.id = account_student.student_id INNER JOIN account ON account_student.account_id = account.id WHERE account.id = ?", [accountId]);
-                resolve({ result: result[0] });
-            } catch (error) {
-                resolve({ error: (error as QueryError).errno });
-            }
-        });
-    }
-
-    async updateStudent(id: number, profile_picture: Blob): Promise<DatabaseResponse<null>> {
-        return new Promise(async (resolve) => {
-            try {
-                await this.transaction("UPDATE student SET profile_picture = ? WHERE id = (SELECT student_id FROM account_student WHERE account_id = ?)", [profile_picture, id]);
-                resolve({});
-            } catch (error) {
-                resolve({ error: (error as QueryError).errno });
-            }
-        });
-    }
-
-    async updatePassword(id: number, password: string): Promise<DatabaseResponse<null>> {
-        return new Promise(async (resolve) => {
-            try {
-                await this.transaction("UPDATE account SET password = ? WHERE id = ?", [password, id]);
+                await this.transaction("UPDATE teacher SET description = ? WHERE id = (SELECT teacher_id FROM account_teacher WHERE account_id = ?)", [description, id]);
                 resolve({});
             } catch (error) {
                 resolve({ error: (error as QueryError).errno });
