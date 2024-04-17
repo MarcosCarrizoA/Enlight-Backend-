@@ -37,6 +37,15 @@ interface Role extends RowDataPacket {
 interface Teacher extends RowDataPacket {
     id?: number;
     description: string;
+    categories: Category[];
+    subjects: Subject[];
+}
+
+interface Subject extends RowDataPacket {
+    id: number;
+    category_name: string;
+    name: string;
+    description: string;
 }
 
 interface Category extends RowDataPacket {
@@ -435,8 +444,24 @@ export class Database {
         return new Promise(async (resolve) => {
             try {
                 const teacherId = await this.query<ID>("SELECT teacher_id as id FROM account_teacher WHERE account_id = ?", [accountId]);
-                const result = await this.query<Teacher>("SELECT * FROM teacher WHERE id = ?", [teacherId[0].id]);
+                const result = await this.query<Teacher>("SELECT * FROM teacher WHERE teacher.id = ?", [teacherId[0].id]);
                 delete result[0].id;
+                const subjectIds = await this.query<ID>("SELECT subject_id AS id FROM teacher_subject WHERE teacher_id = ?", [teacherId[0].id]);
+                const subjects = await this.query<Subject>(
+                    `SELECT subject.*, category.name AS category_name
+                    FROM subject INNER JOIN category_subject
+                    ON subject.id = subject_id
+                    INNER JOIN category ON category_id = category.id
+                    WHERE subject.id IN (?)`,
+                    [subjectIds.map((id) => id.id)]
+                );
+                result[0].subjects = subjects;
+                const categories = await this.getCategories();
+                if (categories.error) {
+                    resolve({ error: categories.error });
+                    return;
+                }
+                result[0].categories = categories.result!;
                 resolve({ result: result[0] });
             } catch (error) {
                 resolve({ error: (error as QueryError).errno });
@@ -459,7 +484,8 @@ export class Database {
     async getCategories(): Promise<DatabaseResponse<Category[]>> {
         return new Promise(async (resolve) => {
             try {
-                const result = await this.query<Category>("SELECT name FROM category", []);
+                const result = await this.query<Category>("SELECT * FROM category", []);
+                result.forEach((category) => delete category.id);
                 resolve({ result: result });
             } catch (error) {
                 resolve({ error: (error as QueryError).errno });
