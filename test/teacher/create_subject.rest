@@ -1,4 +1,4 @@
-POST http://localhost/subject
+POST http://movieweb.mediaversetv.com/subject
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTYwLCJpYXQiOjE3MTMzNjAyMTUsImV4cCI6MTcxMzM2MTExNX0.i55kCvkxpMyAV-8RyKUjdvoH4WyEYZ-dupSqtaa4u2k
 Content-Type: application/json
 

@@ -453,9 +453,9 @@ export class Database {
                 }
                 result[0].categories = categories.result!;
                 const subjectIds = await this.query<ID>("SELECT subject_id AS id FROM teacher_subject WHERE teacher_id = ?", [teacherId[0].id]);
-                if (categories.result!.length == 0) {
+                if (subjectIds.length != 0) {
                     const subjects = await this.query<Subject>(
-                        `SELECT subject.*, category.name AS category_name
+                        `SELECT subject.*, category.id AS category_id, category.name AS category_name
                         FROM subject INNER JOIN category_subject
                         ON subject.id = subject_id
                         INNER JOIN category ON category_id = category.id
