@@ -1,0 +1,2 @@
+GET http://localhost/account
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTY2LCJpYXQiOjE3MTMzMDkyNjAsImV4cCI6MTcxMzMxMDE2MH0.NsAQ0rpqXhv9ym6lATF3_GlAFDw5Ui60pVN2h1q_Pfo

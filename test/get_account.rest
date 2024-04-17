@@ -1,2 +1,0 @@
-GET http://localhost/account?include_picture=true
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTYwLCJpYXQiOjE3MTMyNzI0NTEsImV4cCI6MTcxMzI3MzM1MX0.px-uL4iQOVk-RjkR2LWARu3rg3MnBko4i-IcVRYj11s

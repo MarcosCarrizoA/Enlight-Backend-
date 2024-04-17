@@ -4,6 +4,11 @@ import type { Pool, PoolConnection, QueryError, ResultSetHeader, RowDataPacket }
 interface Credentials extends RowDataPacket {
     id: number;
     password: string;
+    role_id: number;
+}
+
+interface ID extends RowDataPacket {
+    id: number;
 }
 
 interface Token extends RowDataPacket {
@@ -17,10 +22,16 @@ interface Account extends RowDataPacket {
     address: string;
     picture?: string;
     teacher?: Teacher
+    categories?: Category[]
 }
 
 interface Picture extends RowDataPacket {
     picture: Buffer;
+}
+
+interface Role extends RowDataPacket {
+    id?: number;
+    name: string;
 }
 
 interface Teacher extends RowDataPacket {
@@ -28,13 +39,9 @@ interface Teacher extends RowDataPacket {
     description: string;
 }
 
-interface ID extends RowDataPacket {
-    id: number;
-}
-
-interface Role extends RowDataPacket {
+interface Category extends RowDataPacket {
     id?: number;
-    name: string;
+    name: String;
 }
 
 type DatabaseResponse<T> = {
@@ -358,12 +365,9 @@ export class Database {
             try {
                 const roleId = await this.query<ID>("SELECT role_id as id FROM account_role WHERE account_id = ?", [accountId]);
                 const role = await this.query<Role>("SELECT * FROM role WHERE id = ?", [roleId[0].id]);
-
                 delete role[0].id;
-
                 resolve({ result: role[0] });
             } catch (error) {
-
                 resolve({ error: (error as QueryError).errno });
             }
         });
@@ -445,6 +449,18 @@ export class Database {
             try {
                 await this.transaction("UPDATE teacher SET description = ? WHERE id = (SELECT teacher_id FROM account_teacher WHERE account_id = ?)", [description, id]);
                 resolve({});
+            } catch (error) {
+                resolve({ error: (error as QueryError).errno });
+            }
+        });
+    }
+
+    // Categories
+    async getCategories(): Promise<DatabaseResponse<Category[]>> {
+        return new Promise(async (resolve) => {
+            try {
+                const result = await this.query<Category>("SELECT name FROM category", []);
+                resolve({ result: result });
             } catch (error) {
                 resolve({ error: (error as QueryError).errno });
             }

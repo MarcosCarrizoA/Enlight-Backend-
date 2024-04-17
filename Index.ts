@@ -123,12 +123,12 @@ app.get("/password-reset/:token", async (c) => {
 app.post("/password-reset/:token", async (c) => {
     const data = await c.req.formData();
     const password: string = data.get("password") as string;
-    const accessToken = c.req.param("token");
+    const passwordToken = c.req.param("token");
     if (password == undefined || token == undefined) {
         c.status(400);
         return c.text("");
     }
-    const decoded = await token.decodePasswordToken(accessToken);
+    const decoded = await token.decodePasswordToken(passwordToken);
     if (decoded.error) {
         const file = Bun.file(decoded.error == "TokenExpiredError" ? "./pages/token-expired.html" : "./pages/invalid-token.html");
         const text = await file.text();
@@ -184,7 +184,6 @@ app.get("/verify", async (c) => {
 
 // Account
 app.get("/account", async (c) => {
-
     const { include_picture } = c.req.query();
     const id = c.get("id");
     const response = await db.getAccount(id);
@@ -274,24 +273,6 @@ app.delete("/account/picture", async (c) => {
 });
 
 // Teacher
-app.get("/teacher", async (c) => {
-    const id = c.get("id");
-    const response = await db.getTeacher(id);
-    if (response.error) {
-        c.status(500);
-        return c.text("");
-    }
-    if (!response.result) {
-        c.status(404);
-        return c.text("");
-    }
-    const buffer = response.result.profile_picture!;
-    delete response.result.profile_picture;
-    const base64 = buffer.toString("base64");
-    response.result.picture = base64;
-    return c.json(response.result);
-});
-
 app.put("/teacher", async (c) => {
     const { description } = await c.req.json();
     if (description == undefined) {
@@ -305,6 +286,16 @@ app.put("/teacher", async (c) => {
         return c.text("");
     }
     return c.text("");
+});
+
+// Categories
+app.get("/categories", async (c) => {
+    const response = await db.getCategories();
+    if (response.error) {
+        c.status(500);
+        return c.text("");
+    }
+    return c.json(response.result);
 });
 
 // Subject
