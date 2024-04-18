@@ -210,6 +210,7 @@ export class Database {
                     connection.release();
                     resolve({ error: error.errno });
                 }
+                connection.release();
                 resolve({});
             });
         });
@@ -222,6 +223,7 @@ export class Database {
                     connection.release();
                     resolve({ error: error.errno });
                 }
+                connection.release();
                 resolve({});
             });
         });
@@ -456,10 +458,8 @@ export class Database {
                 if (subjectIds.length != 0) {
                     const subjects = await this.query<Subject>(
                         `SELECT subject.*, category.id AS category_id, category.name AS category_name
-                        FROM subject INNER JOIN category_subject
-                        ON subject.id = subject_id
-                        INNER JOIN category ON category_id = category.id
-                        WHERE subject.id IN (?)`,
+                        FROM subject INNER JOIN category_subject ON subject.id = subject_id
+                        INNER JOIN category ON category_id = category.id WHERE subject.id IN (?)`,
                         [subjectIds.map((id) => id.id)]
                     );
                     result[0].subjects = subjects;
