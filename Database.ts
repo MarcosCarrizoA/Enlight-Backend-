@@ -46,6 +46,7 @@ interface Subject extends RowDataPacket {
     category_name: string;
     name: string;
     description: string;
+    price: number;
 }
 
 interface Category extends RowDataPacket {
@@ -496,7 +497,7 @@ export class Database {
     }
 
     // Subject
-    async createSubject(accountId: number, categoryName: string, name: string, description: string): Promise<DatabaseResponse<null>> {
+    async createSubject(accountId: number, categoryName: string, name: string, description: string, price: number): Promise<DatabaseResponse<null>> {
         return new Promise(async (resolve) => {
             try {
                 const teacherId = await this.query<ID>("SELECT teacher_id as id FROM account_teacher WHERE account_id = ?", [accountId]);
@@ -504,8 +505,8 @@ export class Database {
                 const result = await this.multiTransaction(
                     [
                         {
-                            sql: "INSERT INTO subject VALUES (NULL, ?, ?)",
-                            values: [name, description]
+                            sql: "INSERT INTO subject VALUES (NULL, ?, ?, ?)",
+                            values: [name, description, price]
                         }
                     ],
                     [
