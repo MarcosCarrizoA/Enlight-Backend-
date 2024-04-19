@@ -300,13 +300,13 @@ app.get("/categories", async (c) => {
 
 // Subject
 app.post("/subject", async (c) => {
-    const { category_name, name, description, price } = await c.req.json();
-    if (!category_name || !name || !description || !price) {
+    const { category_name, name, description, price, days } = await c.req.json();
+    if (!category_name || !name || !description || !price || !days) {
         c.status(400);
         return c.text("");
     }
     const id = c.get("id");
-    const response = await db.createSubject(id, category_name, name, description, price);
+    const response = await db.createSubject(id, category_name, name, description, price, days);
     if (response.error) {
         c.status(500);
         return c.text("");

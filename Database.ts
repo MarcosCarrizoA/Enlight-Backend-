@@ -497,11 +497,20 @@ export class Database {
     }
 
     // Subject
-    async createSubject(accountId: number, categoryName: string, name: string, description: string, price: number): Promise<DatabaseResponse<null>> {
+    async createSubject(accountId: number, categoryName: string, name: string, description: string, price: number, days: string[]): Promise<DatabaseResponse<null>> {
         return new Promise(async (resolve) => {
             try {
                 const teacherId = await this.query<ID>("SELECT teacher_id as id FROM account_teacher WHERE account_id = ?", [accountId]);
                 const categoryId = await this.query<ID>("SELECT id FROM category WHERE name = ?", [categoryName]);
+                const thirdSet = [];
+                for (const day of days) {
+                    const dayID = await this.query<ID>("SELECT id FROM dayslot WHERE day = ?", [day]);
+                    thirdSet.push({
+                        sql: "INSERT INTO teacher_subject_day (subject_id, teacher_id, day_id) VALUES (?, ?, ?)",
+                        values: [teacherId[0].id, dayID[0].id],
+                        previousInsert: [[0, 0]]
+                    });
+                }
                 const result = await this.multiTransaction(
                     [
                         {
@@ -520,7 +529,8 @@ export class Database {
                             values: [categoryId[0].id],
                             previousInsert: [[0, 0]]
                         }
-                    ]
+                    ],
+                    thirdSet
                 );
                 await this.completeTransaction(result);
                 resolve({});
