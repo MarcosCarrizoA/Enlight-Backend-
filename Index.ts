@@ -314,6 +314,21 @@ app.post("/subject", async (c) => {
     return c.text("");
 });
 
+app.delete("/subject", async (c) => {
+    const { subject_id } = await c.req.json();
+    if (!subject_id) {
+        c.status(400);
+        return c.text("");
+    }
+    const id = c.get("id");
+    const response = await db.deleteSubject(id, subject_id);
+    if (response.error) {
+        c.status(500);
+        return c.text("");
+    }
+    return c.text("");
+});
+
 Bun.serve({
     fetch: app.fetch,
     port: 80,

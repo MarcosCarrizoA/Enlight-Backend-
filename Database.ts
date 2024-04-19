@@ -539,6 +539,38 @@ export class Database {
             }
         });
     }
+
+    async deleteSubject(accountId: number, subjectId: number): Promise<DatabaseResponse<null>> {
+        return new Promise(async (resolve) => {
+            try {
+                const teacherId = await this.query<ID>("SELECT teacher_id as id FROM account_teacher WHERE account_id = ?", [accountId]);
+                const result = await this.multiTransaction(
+                    [
+                        {
+                            sql: "DELETE FROM teacher_subject_day WHERE subject_id = ? AND teacher_id = ?",
+                            values: [subjectId, teacherId[0].id]
+                        },
+                        {
+                            sql: "DELETE FROM category_subject WHERE subject_id = ?",
+                            values: [subjectId]
+                        },
+                        {
+                            sql: "DELETE FROM teacher_subject_day WHERE subject_id = ? AND teacher_id = ?",
+                            values: [subjectId, teacherId[0].id]
+                        },
+                        {
+                            sql: "DELETE FROM subject WHERE id = ?",
+                            values: [subjectId]
+                        },
+                    ]
+                )
+                await this.completeTransaction(result);
+                resolve({});
+            } catch (error) {
+                resolve({ error: (error as QueryError).errno });
+            }
+        });
+    }
 }
 
 export default function database(): Database {
