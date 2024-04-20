@@ -54,12 +54,17 @@ interface Category extends RowDataPacket {
     name: String;
 }
 
-type DatabaseResponse<T> = {
+interface DatabaseResponse<T> {
     error?: number;
     result?: T;
 }
 
-type Subtransaction = {
+interface TransactionResult {
+    connection: PoolConnection;
+    insertIds: number[][];
+}
+
+interface Subtransaction {
     sql: string;
     values: any[];
     /** Insert ID of previous subtransaction to be inserted as the first value parameter. */
@@ -153,7 +158,7 @@ export class Database {
         });
     }
 
-    private async multiTransaction(...subtransactions: Subtransaction[][]): Promise<PoolConnection> {
+    private async multiTransaction(...subtransactions: Subtransaction[][]): Promise<TransactionResult> {
         return new Promise((resolve, reject) => {
             this.pool.getConnection((error, connection) => {
                 if (error) {
@@ -181,7 +186,7 @@ export class Database {
                             const results = await Promise.all(promises);
                             completed.push(results);
                         }
-                        resolve(connection);
+                        resolve({ connection: connection, insertIds: completed });
                     } catch (error) {
                         connection.rollback((newError) => {
                             if (newError) {
@@ -306,7 +311,7 @@ export class Database {
                     secondSet,
                     thirdSet
                 );
-                resolve({ result: result });
+                resolve({ result: result.connection });
             } catch (error) {
                 resolve({ error: (error as QueryError).errno });
             }
@@ -406,7 +411,7 @@ export class Database {
                             }
                         ]
                     )
-                    await this.completeTransaction(result);
+                    await this.completeTransaction(result.connection);
                     resolve({});
                     return;
                 }
@@ -497,7 +502,7 @@ export class Database {
     }
 
     // Subject
-    async createSubject(accountId: number, categoryName: string, name: string, description: string, price: number, days: string[]): Promise<DatabaseResponse<null>> {
+    async createSubject(accountId: number, categoryName: string, name: string, description: string, price: number, days: string[]): Promise<DatabaseResponse<number>> {
         return new Promise(async (resolve) => {
             try {
                 const teacherId = await this.query<ID>("SELECT teacher_id as id FROM account_teacher WHERE account_id = ?", [accountId]);
@@ -532,8 +537,8 @@ export class Database {
                     ],
                     thirdSet
                 );
-                await this.completeTransaction(result);
-                resolve({});
+                await this.completeTransaction(result.connection);
+                resolve({ result: result.insertIds[0][0] });
             } catch (error) {
                 resolve({ error: (error as QueryError).errno });
             }
@@ -564,7 +569,7 @@ export class Database {
                         },
                     ]
                 )
-                await this.completeTransaction(result);
+                await this.completeTransaction(result.connection);
                 resolve({});
             } catch (error) {
                 resolve({ error: (error as QueryError).errno });

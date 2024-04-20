@@ -1,9 +1,11 @@
-POST http://movieweb.mediaversetv.com/subject
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTYwLCJpYXQiOjE3MTMzNjAyMTUsImV4cCI6MTcxMzM2MTExNX0.i55kCvkxpMyAV-8RyKUjdvoH4WyEYZ-dupSqtaa4u2k
+POST http://localhost/subject
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTgyLCJpYXQiOjE3MTM1ODIyOTAsImV4cCI6MTcxMzU4MzE5MH0.h5RKe97Kzz_qaPzRnsfmoZ7rh5pldz54DbTY5fzQtyk
 Content-Type: application/json
 
 {
     "category_name": "Theology",
     "name": "si",
-    "description": "si"
+    "description": "si",
+    "price": 10,
+    "days": ["Monday"]
 }

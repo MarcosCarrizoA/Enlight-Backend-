@@ -311,7 +311,7 @@ app.post("/subject", async (c) => {
         c.status(500);
         return c.text("");
     }
-    return c.text("");
+    return c.text(response.result!.toString());
 });
 
 app.delete("/subject", async (c) => {
