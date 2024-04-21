@@ -47,6 +47,19 @@ interface Subject extends RowDataPacket {
     name: string;
     description: string;
     price: number;
+    days: Day[];
+}
+
+interface Day extends RowDataPacket {
+    id?: number;
+    name: string;
+    timeslots: Timeslot[];
+}
+
+interface Timeslot extends RowDataPacket {
+    id?: number;
+    start_time: Date;
+    end_time: Date;
 }
 
 interface Category extends RowDataPacket {
@@ -463,7 +476,7 @@ export class Database {
                 const subjectIds = await this.query<ID>("SELECT subject_id AS id FROM teacher_subject WHERE teacher_id = ?", [teacherId[0].id]);
                 if (subjectIds.length != 0) {
                     const subjects = await this.query<Subject>(
-                        `SELECT subject.*, category.id AS category_id, category.name AS category_name
+                        `SELECT subject.*, category.name AS category_name
                         FROM subject INNER JOIN category_subject ON subject.id = subject_id
                         INNER JOIN category ON category_id = category.id WHERE subject.id IN (?)`,
                         [subjectIds.map((id) => id.id)]
@@ -502,19 +515,55 @@ export class Database {
     }
 
     // Subject
-    async createSubject(accountId: number, categoryName: string, name: string, description: string, price: number, days: string[]): Promise<DatabaseResponse<number>> {
+    async createSubject(accountId: number, categoryName: string, name: string, description: string, price: number, days: Day[]): Promise<DatabaseResponse<number>> {
         return new Promise(async (resolve) => {
             try {
                 const teacherId = await this.query<ID>("SELECT teacher_id as id FROM account_teacher WHERE account_id = ?", [accountId]);
                 const categoryId = await this.query<ID>("SELECT id FROM category WHERE name = ?", [categoryName]);
-                const thirdSet = [];
-                for (const day of days) {
-                    const dayID = await this.query<ID>("SELECT id FROM dayslot WHERE day = ?", [day]);
-                    thirdSet.push({
-                        sql: "INSERT INTO teacher_subject_day (subject_id, teacher_id, day_id) VALUES (?, ?, ?)",
-                        values: [teacherId[0].id, dayID[0].id],
+                const secondSet: Subtransaction[] = [
+                    {
+                        sql: "INSERT INTO teacher_subject (subject_id, teacher_id) VALUES (?, ?)",
+                        values: [teacherId[0].id],
                         previousInsert: [[0, 0]]
-                    });
+                    },
+                    {
+                        sql: "INSERT INTO category_subject (subject_id, category_id) VALUES (?, ?)",
+                        values: [categoryId[0].id],
+                        previousInsert: [[0, 0]]
+                    }
+                ];
+                for (const day of days) {
+                    const dayId = await this.query<ID>("SELECT id FROM day WHERE name LIKE ?", [day.name]);
+                    if (dayId.length == 0) {
+                        resolve({ error: 66 });
+                        return;
+                    }
+                    for (const timeslot of day.timeslots) {
+                        const startTimeId = await this.query<ID>("SELECT id FROM time WHERE time = ?", [timeslot.start_time]);
+                        const endTimeId = await this.query<ID>("SELECT id FROM time WHERE time = ?", [timeslot.end_time]);
+                        const timeTransaction: Subtransaction[] = [];
+                        if (startTimeId.length == 0) {
+                            timeTransaction.push({
+                                sql: "INSERT INTO time VALUES (NULL, ?)",
+                                values: [timeslot.start_time]
+                            });
+                        }
+                        if (endTimeId.length == 0) {
+                            timeTransaction.push({
+                                sql: "INSERT INTO time VALUES (NULL, ?)",
+                                values: [timeslot.end_time]
+                            });
+                        }
+                        let result: TransactionResult | null = null;
+                        if (timeTransaction.length != 0) {
+                            result = await this.multiTransaction(timeTransaction);
+                        }
+                        secondSet.push({
+                            sql: "INSERT INTO timeslot VALUES (?, ?, ?, ?)",
+                            values: [teacherId[0].id,],
+                            previousInsert: [[0, 0]]
+                        });
+                    }
                 }
                 const result = await this.multiTransaction(
                     [
@@ -523,19 +572,7 @@ export class Database {
                             values: [name, description, price]
                         }
                     ],
-                    [
-                        {
-                            sql: "INSERT INTO teacher_subject (subject_id, teacher_id) VALUES (?, ?)",
-                            values: [teacherId[0].id],
-                            previousInsert: [[0, 0]]
-                        },
-                        {
-                            sql: "INSERT INTO category_subject (subject_id, category_id) VALUES (?, ?)",
-                            values: [categoryId[0].id],
-                            previousInsert: [[0, 0]]
-                        }
-                    ],
-                    thirdSet
+                    secondSet
                 );
                 await this.completeTransaction(result.connection);
                 resolve({ result: result.insertIds[0][0] });

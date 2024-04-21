@@ -7,5 +7,28 @@ Content-Type: application/json
     "name": "si",
     "description": "si",
     "price": 10,
-    "days": ["Monday"]
+    "days": [
+        {
+            "name": "Monday",
+            "timeslots": [
+                {
+                    "start_time": "10:00",
+                    "end_time": "11:00"
+                },
+                {
+                    "start_time": "15:00",
+                    "end_time": "17:00"
+                }
+            ]
+        },
+        {
+            "name": "Tuesday",
+            "timeslots": [
+                {
+                    "start_time": "18:00",
+                    "end_time": "19:00"
+                }
+            ]
+        }
+    ]
 }
