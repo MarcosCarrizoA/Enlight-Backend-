@@ -89,7 +89,7 @@ export class Database {
 
     constructor() {
         this.pool = mysql.createPool({
-            host: "127.0.0.1",
+            host: Bun.env.DATABASE_HOST,
             port: parseInt(Bun.env.DATABASE_PORT!),
             user: Bun.env.DATABASE_USER,
             password: Bun.env.DATABASE_PASSWORD,
@@ -542,25 +542,27 @@ export class Database {
                         const startTimeId = await this.query<ID>("SELECT id FROM time WHERE time = ?", [timeslot.start_time]);
                         const endTimeId = await this.query<ID>("SELECT id FROM time WHERE time = ?", [timeslot.end_time]);
                         const timeTransaction: Subtransaction[] = [];
+                        var startId: number | null = null;
                         if (startTimeId.length == 0) {
-                            timeTransaction.push({
+                            const result = await this.multiTransaction([{
                                 sql: "INSERT INTO time VALUES (NULL, ?)",
                                 values: [timeslot.start_time]
-                            });
+                            }]);
+                            startId = result.insertIds[0][0];
+                            await this.completeTransaction(result.connection);
                         }
+                        var endId: number | null = null;
                         if (endTimeId.length == 0) {
-                            timeTransaction.push({
+                            const result = await this.multiTransaction([{
                                 sql: "INSERT INTO time VALUES (NULL, ?)",
                                 values: [timeslot.end_time]
-                            });
-                        }
-                        let result: TransactionResult | null = null;
-                        if (timeTransaction.length != 0) {
-                            result = await this.multiTransaction(timeTransaction);
+                            }]);
+                            endId = result.insertIds[0][0];
+                            await this.completeTransaction(result.connection);
                         }
                         secondSet.push({
                             sql: "INSERT INTO timeslot VALUES (?, ?, ?, ?)",
-                            values: [teacherId[0].id,],
+                            values: [dayId[0].id, startId ?? startTimeId[0].id, endId ?? endTimeId[0].id],
                             previousInsert: [[0, 0]]
                         });
                     }
