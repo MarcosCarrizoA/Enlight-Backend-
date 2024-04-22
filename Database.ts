@@ -624,7 +624,7 @@ export class Database {
                     resolve({ error: 66 });
                     return;
                 }
-                await this.transaction("DELETE FROM subject WHERE id = ?", [subjectId]);
+                await this.transaction("DELETE FROM subject WHERE id = ?", [subjectId[0].id]);
                 resolve({});
             } catch (error) {
                 resolve({ error: (error as QueryError).errno });
