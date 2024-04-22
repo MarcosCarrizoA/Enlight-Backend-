@@ -1,0 +1,34 @@
+POST http://localhost/subject
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTgyLCJpYXQiOjE3MTM3NTE2NTgsImV4cCI6MTcxMzc1MjU1OH0.C8F-UUkJhtU8i040zDkbUluxk5wj0x6DYpAVUGFzipY
+Content-Type: application/json
+
+{
+    "category_name": "Theology",
+    "name": "si",
+    "description": "si",
+    "price": 10,
+    "days": [
+        {
+            "name": "Monday",
+            "timeslots": [
+                {
+                    "start_time": "10:00",
+                    "end_time": "11:00"
+                },
+                {
+                    "start_time": "15:00",
+                    "end_time": "17:00"
+                }
+            ]
+        },
+        {
+            "name": "Tuesday",
+            "timeslots": [
+                {
+                    "start_time": "18:00",
+                    "end_time": "19:00"
+                }
+            ]
+        }
+    ]
+}

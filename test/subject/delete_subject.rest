@@ -1,0 +1,7 @@
+DELETE http://localhost/subject
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTgyLCJpYXQiOjE3MTM3NTE2NTgsImV4cCI6MTcxMzc1MjU1OH0.C8F-UUkJhtU8i040zDkbUluxk5wj0x6DYpAVUGFzipY
+Content-Type: application/json
+
+{
+    "id": 79
+}
