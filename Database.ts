@@ -11,6 +11,11 @@ interface ID extends RowDataPacket {
     id: number;
 }
 
+interface TimeID extends RowDataPacket {
+    start_time_id: number;
+    end_time_id: number;
+}
+
 interface Token extends RowDataPacket {
     token: string;
 }
@@ -38,7 +43,7 @@ interface Teacher extends RowDataPacket {
     id?: number;
     description: string;
     categories: Category[];
-    subjects: Subject[];
+    subjects?: Subject[];
 }
 
 interface Subject extends RowDataPacket {
@@ -47,19 +52,24 @@ interface Subject extends RowDataPacket {
     name: string;
     description: string;
     price: number;
-    days: Day[];
+    days?: Day[];
 }
 
 interface Day extends RowDataPacket {
     id?: number;
     name: string;
-    timeslots: Timeslot[];
+    timeslots?: Timeslot[];
 }
 
-interface Timeslot extends RowDataPacket {
+interface Time extends RowDataPacket {
     id?: number;
-    start_time: Date;
-    end_time: Date;
+    time: string;
+}
+
+interface Timeslot {
+    id?: number;
+    start_time: string;
+    end_time: string;
 }
 
 interface Category extends RowDataPacket {
@@ -481,6 +491,31 @@ export class Database {
                         INNER JOIN category ON category_id = category.id WHERE subject.id IN (?)`,
                         [subjectIds.map((id) => id.id)]
                     );
+                    for (const subject of subjects) {
+                        const dayIds = await this.query<ID>("SELECT day_id AS id FROM timeslot WHERE subject_id = ?", [subject.id]);
+                        if (dayIds.length != 0) {
+                            subject.days = [];
+                            const days = await this.query<Day>("SELECT * FROM day WHERE id IN (?)", [dayIds.map((day) => day.id)]);
+                            for (const day of days) {
+                                const timeIds = await this.query<TimeID>("SELECT start_time_id, end_time_id FROM timeslot WHERE subject_id = ? AND day_id = ?", [subject.id, day.id]);
+                                if (timeIds.length != 0) {
+                                    day.timeslots = [];
+                                    for (const timeId in timeIds) {
+                                        const startTime = await this.query<Time>("SELECT * FROM time WHERE id = ?", [timeIds[0].start_time_id]);
+                                        delete startTime[0].id;
+                                        const endTime = await this.query<Time>("SELECT * FROM time WHERE id = ?", [timeIds[0].end_time_id]);
+                                        delete endTime[0].id;
+                                        day.timeslots.push({
+                                            start_time: startTime[0].time,
+                                            end_time: endTime[0].time,
+                                        });
+                                    }
+                                }
+                                delete day.id;
+                                subject.days.push(day);
+                            }
+                        }
+                    }
                     result[0].subjects = subjects;
                 }
                 resolve({ result: result[0] });
@@ -538,7 +573,7 @@ export class Database {
                         resolve({ error: 66 });
                         return;
                     }
-                    for (const timeslot of day.timeslots) {
+                    for (const timeslot of day.timeslots!) {
                         const startTimeId = await this.query<ID>("SELECT id FROM time WHERE time = ?", [timeslot.start_time]);
                         const endTimeId = await this.query<ID>("SELECT id FROM time WHERE time = ?", [timeslot.end_time]);
                         const timeTransaction: Subtransaction[] = [];
