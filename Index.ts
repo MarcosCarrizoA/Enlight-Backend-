@@ -235,14 +235,14 @@ app.put("/account", async (c) => {
     return c.text("");
 });
 
-app.delete("/account", async (context) => {
-    const id = context.get("id")
+app.delete("/account", async (c) => {
+    const id = c.get("id")
     const response = await db.deleteAccount(id);
     if (response.error) {
-        context.status(500);
-        return context.text("");
+        c.status(500);
+        return c.text("");
     }
-    return context.text("");
+    return c.text("");
 });
 
 // Picture
@@ -315,13 +315,13 @@ app.post("/subject", async (c) => {
 });
 
 app.delete("/subject", async (c) => {
-    const { subject_id } = await c.req.json();
-    if (!subject_id) {
+    const { id } = await c.req.json();
+    if (!id) {
         c.status(400);
         return c.text("");
     }
-    const id = c.get("id");
-    const response = await db.deleteSubject(id, subject_id);
+    const accountId = c.get("id");
+    const response = await db.deleteSubject(accountId, id);
     if (response.error) {
         c.status(500);
         return c.text("");
