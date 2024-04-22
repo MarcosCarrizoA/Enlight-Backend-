@@ -576,7 +576,6 @@ export class Database {
                     for (const timeslot of day.timeslots!) {
                         const startTimeId = await this.query<ID>("SELECT id FROM time WHERE time = ?", [timeslot.start_time]);
                         const endTimeId = await this.query<ID>("SELECT id FROM time WHERE time = ?", [timeslot.end_time]);
-                        const timeTransaction: Subtransaction[] = [];
                         var startId: number | null = null;
                         if (startTimeId.length == 0) {
                             const result = await this.multiTransaction([{
@@ -602,13 +601,10 @@ export class Database {
                         });
                     }
                 }
-                const result = await this.multiTransaction(
-                    [
-                        {
-                            sql: "INSERT INTO subject VALUES (NULL, ?, ?, ?)",
-                            values: [name, description, price]
-                        }
-                    ],
+                const result = await this.multiTransaction([{
+                    sql: "INSERT INTO subject VALUES (NULL, ?, ?, ?)",
+                    values: [name, description, price]
+                }],
                     secondSet
                 );
                 await this.completeTransaction(result.connection);
@@ -622,7 +618,13 @@ export class Database {
     async deleteSubject(accountId: number, id: number): Promise<DatabaseResponse<null>> {
         return new Promise(async (resolve) => {
             try {
-                await this.transaction("DELETE FROM subject WHERE id = ?", [id]);
+                const teacherId = await this.query<ID>("SELECT teacher_id AS id FROM account_teacher WHERE account_id = ?", [accountId]);
+                const subjectId = await this.query<ID>("SELECT subject_id AS id FROM teacher_subject WHERE teacher_id = ? AND subject_id = ?", [teacherId[0].id, id]);
+                if (subjectId.length == 0) {
+                    resolve({ error: 66 });
+                    return;
+                }
+                await this.transaction("DELETE FROM subject WHERE id = ?", [subjectId]);
                 resolve({});
             } catch (error) {
                 resolve({ error: (error as QueryError).errno });
