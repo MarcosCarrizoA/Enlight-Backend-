@@ -93,6 +93,11 @@ interface TransactionResult {
     insertIds: number[][]
 }
 
+interface Query {
+    teachers?: Teacher[]
+    subjects?: Subject[]
+}
+
 interface Subtransaction {
     sql: string
     values: any[]
@@ -817,6 +822,45 @@ export class Database {
                     subjectId[0].id,
                 ])
                 resolve({})
+            } catch (error) {
+                resolve({ error: (error as QueryError).errno })
+            }
+        })
+    }
+
+    // Search
+    async search(query: string): Promise<DatabaseResponse<Query>> {
+        return new Promise(async (resolve) => {
+            try {
+                const subjects = await this.query<Subject>(
+                    `SELECT subject.*, category.name AS category_name
+                    FROM subject INNER JOIN category_subject ON subject.id = subject_id
+                    INNER JOIN category ON category_id = category.id
+                    WHERE subject.name LIKE ? OR category.name LIKE ?`,
+                    [`%${query}%`, `%${query}%`]
+                )
+                const accountIds = await this.query<ID>(
+                    "SELECT id FROM account WHERE name LIKE ?",
+                    [`%${query}%`]
+                )
+                const teacherIds =
+                    accountIds.length != 0
+                        ? await this.query<ID>(
+                              "SELECT teacher_id AS id FROM account_teacher WHERE account_id IN (?)",
+                              [accountIds.map((id) => id.id)]
+                          )
+                        : null
+                const teachers = teacherIds
+                    ? await this.query<Teacher>(
+                          "SELECT * FROM teacher WHERE id IN (?)",
+                          [teacherIds.map((id) => id.id)]
+                      )
+                    : undefined
+                const result: Query = {
+                    subjects: subjects.length != 0 ? subjects : undefined,
+                    teachers: teachers,
+                }
+                resolve({ result: result })
             } catch (error) {
                 resolve({ error: (error as QueryError).errno })
             }

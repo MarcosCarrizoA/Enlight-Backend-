@@ -1,0 +1,2 @@
+GET http://localhost/search?q=a
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTgzLCJpYXQiOjE3MTQ0ODM5NDksImV4cCI6MTcxNDQ4NDg0OX0.6BM9moJOyJimcyp56gpsXIfepAa5aV8Nlb-4VTqx3BU

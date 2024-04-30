@@ -356,6 +356,21 @@ app.delete("/subject", async (c) => {
     return c.text("")
 })
 
+// Search
+app.get("/search", async (c) => {
+    const { q } = c.req.query()
+    if (!q) {
+        c.status(400)
+        return c.text("")
+    }
+    const response = await db.search(q)
+    if (response.error) {
+        c.status(500)
+        return c.text("")
+    }
+    return c.json(response.result)
+})
+
 Bun.serve({
     fetch: app.fetch,
     port: 80,
