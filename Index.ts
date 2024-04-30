@@ -368,6 +368,17 @@ app.get("/search", async (c) => {
         c.status(500)
         return c.text("")
     }
+    if (response.result?.teachers) {
+        for (const teacher of response.result.teachers) {
+            const picture = await db.getPicture(teacher.account_id!!)
+            if (picture.error) {
+                c.status(500)
+                return c.text("")
+            }
+            delete teacher.account_id
+            teacher.picture = picture.result?.picture.toString("base64")
+        }
+    }
     return c.json(response.result)
 })
 

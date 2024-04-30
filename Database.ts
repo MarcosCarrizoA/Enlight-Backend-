@@ -52,6 +52,14 @@ interface Teacher extends RowDataPacket {
     subjects?: Subject[]
 }
 
+interface TeacherPublic extends RowDataPacket {
+    account_id?: number
+    id?: number
+    name: string
+    description: string
+    picture?: string
+}
+
 interface Subject extends RowDataPacket {
     id: number
     category_name: string
@@ -94,7 +102,7 @@ interface TransactionResult {
 }
 
 interface Query {
-    teachers?: Teacher[]
+    teachers?: TeacherPublic[]
     subjects?: Subject[]
 }
 
@@ -836,26 +844,16 @@ export class Database {
                     `SELECT subject.*, category.name AS category_name
                     FROM subject INNER JOIN category_subject ON subject.id = subject_id
                     INNER JOIN category ON category_id = category.id
-                    WHERE subject.name LIKE ? OR category.name LIKE ?`,
+                    WHERE subject.name LIKE ? OR category.name LIKE ? LIMIT 10`,
                     [`%${query}%`, `%${query}%`]
                 )
-                const accountIds = await this.query<ID>(
-                    "SELECT id FROM account WHERE name LIKE ?",
+                const teachers = await this.query<TeacherPublic>(
+                    `SELECT teacher.*, account.name, account.id AS account_id
+                    FROM teacher INNER JOIN account_teacher ON teacher.id = teacher_id
+                    INNER JOIN account ON account_id = account.id
+                    WHERE name LIKE ?`,
                     [`%${query}%`]
                 )
-                const teacherIds =
-                    accountIds.length != 0
-                        ? await this.query<ID>(
-                              "SELECT teacher_id AS id FROM account_teacher WHERE account_id IN (?)",
-                              [accountIds.map((id) => id.id)]
-                          )
-                        : null
-                const teachers = teacherIds
-                    ? await this.query<Teacher>(
-                          "SELECT * FROM teacher WHERE id IN (?)",
-                          [teacherIds.map((id) => id.id)]
-                      )
-                    : undefined
                 const result: Query = {
                     subjects: subjects.length != 0 ? subjects : undefined,
                     teachers: teachers,
