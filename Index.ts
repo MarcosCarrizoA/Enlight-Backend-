@@ -293,6 +293,17 @@ app.delete("/account/picture", async (c) => {
 })
 
 // Teacher
+app.get("/teacher", async (c) => {
+    const { account_id } = c.req.query(); 
+    const teacher = await db.getTeacher(Number(account_id));
+    if (teacher.error) {
+        c.status(500);
+        return c.text("");
+    }
+    c.status(200);
+    return c.json(teacher.result);
+});
+
 app.put("/teacher", async (c) => {
     const { description } = await c.req.json()
     if (description == undefined) {
@@ -375,7 +386,6 @@ app.get("/search", async (c) => {
                 c.status(500)
                 return c.text("")
             }
-            delete teacher.account_id
             teacher.picture = picture.result?.picture.toString("base64")
         }
     }
