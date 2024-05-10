@@ -676,6 +676,22 @@ export class Database {
         })
     }
 
+    async getTeacherPublic(teacher_id: Number): Promise<DatabaseResponse<TeacherPublic>> {
+        return new Promise(async (resolve) => {
+            try {
+                const result = await this.query<TeacherPublic>(
+                    "SELECT teacher.*, account.name, account.id AS account_id FROM teacher INNER JOIN account_teacher ON teacher.id = teacher_id INNER JOIN account ON account_id = account.id WHERE teacher.id = ?",
+                    [teacher_id]
+                )
+                const picture = await this.getPicture(result[0].account_id!)
+                result[0].picture = picture.result?.picture.toString("base64")
+                resolve({ result: result[0] })
+            } catch (error) {
+                resolve({ error: (error as QueryError).errno })
+            }
+        })
+    }
+
     async updateTeacher(
         id: number,
         description: string

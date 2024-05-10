@@ -294,12 +294,13 @@ app.delete("/account/picture", async (c) => {
 
 // Teacher
 app.get("/teacher", async (c) => {
-    const { account_id } = c.req.query(); 
-    const teacher = await db.getTeacher(Number(account_id));
+    const { id } = c.req.query(); 
+    const teacher = await db.getTeacherPublic(Number(id));
     if (teacher.error) {
         c.status(500);
         return c.text("");
     }
+    delete teacher.result?.account_id;
     c.status(200);
     return c.json(teacher.result);
 });
