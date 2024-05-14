@@ -1,2 +1,2 @@
-GET http://localhost/teacher
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTYwLCJpYXQiOjE3MTMzNTg5MTQsImV4cCI6MTcxMzM1OTgxNH0.xBmQNJCViBv6ueoOuTwdyN0-iWo-Evdxh4Ft_txVgAI
+GET http://movieweb.mediaversetv.com/teacher?id=30
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTY2LCJpYXQiOjE3MTU2OTc1MTQsImV4cCI6MTcxNTY5ODQxNH0.dAf7Fw29phfCSzCoqmPXrX9dNRlfN6MdLS3-aGoHcRU

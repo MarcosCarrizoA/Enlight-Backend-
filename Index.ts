@@ -387,6 +387,7 @@ app.get("/search", async (c) => {
                 c.status(500)
                 return c.text("")
             }
+            delete teacher.account_id
             teacher.picture = picture.result?.picture.toString("base64")
         }
     }

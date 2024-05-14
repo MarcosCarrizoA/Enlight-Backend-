@@ -47,6 +47,7 @@ interface Role extends RowDataPacket {
 
 interface Teacher extends RowDataPacket {
     id?: number
+    rating: number
     description: string
     categories: Category[]
     subjects?: Subject[]
@@ -55,6 +56,7 @@ interface Teacher extends RowDataPacket {
 interface TeacherPublic extends RowDataPacket {
     account_id?: number
     id?: number
+    rating: number
     name: string
     description: string
     picture?: string
@@ -73,6 +75,10 @@ interface Day extends RowDataPacket {
     id?: number
     name: string
     timeslots?: Timeslot[]
+}
+
+interface Rating extends RowDataPacket {
+    rating: number
 }
 
 interface Time extends RowDataPacket {
@@ -669,6 +675,12 @@ export class Database {
                     }
                     result[0].subjects = subjects
                 }
+                const rating = await this.getRating(teacherId[0].id)
+                if (rating.error) {
+                    resolve({ error: rating.error })
+                    return
+                }
+                result[0].rating = rating.result!.rating
                 resolve({ result: result[0] })
             } catch (error) {
                 resolve({ error: (error as QueryError).errno })
@@ -685,6 +697,66 @@ export class Database {
                 )
                 const picture = await this.getPicture(result[0].account_id!)
                 result[0].picture = picture.result?.picture.toString("base64")
+                const subjectIds = await this.query<ID>(
+                    "SELECT subject_id AS id FROM teacher_subject WHERE teacher_id = ?",
+                    [teacher_id]
+                )
+                if (subjectIds.length != 0) {
+                    const subjects = await this.query<Subject>(
+                        `SELECT subject.*, category.name AS category_name
+                        FROM subject INNER JOIN category_subject ON subject.id = subject_id
+                        INNER JOIN category ON category_id = category.id WHERE subject.id IN (?)`,
+                        [subjectIds.map((id) => id.id)]
+                    )
+                    for (const subject of subjects) {
+                        const dayIds = await this.query<ID>(
+                            "SELECT day_id AS id FROM timeslot WHERE subject_id = ?",
+                            [subject.id]
+                        )
+                        if (dayIds.length != 0) {
+                            subject.days = []
+                            const days = await this.query<Day>(
+                                "SELECT * FROM day WHERE id IN (?)",
+                                [dayIds.map((day) => day.id)]
+                            )
+                            for (const day of days) {
+                                const timeIds = await this.query<TimeID>(
+                                    "SELECT start_time_id, end_time_id FROM timeslot WHERE subject_id = ? AND day_id = ?",
+                                    [subject.id, day.id]
+                                )
+                                if (timeIds.length != 0) {
+                                    day.timeslots = []
+                                    for (const timeId in timeIds) {
+                                        const startTime =
+                                            await this.query<Time>(
+                                                "SELECT * FROM time WHERE id = ?",
+                                                [timeIds[0].start_time_id]
+                                            )
+                                        delete startTime[0].id
+                                        const endTime = await this.query<Time>(
+                                            "SELECT * FROM time WHERE id = ?",
+                                            [timeIds[0].end_time_id]
+                                        )
+                                        delete endTime[0].id
+                                        day.timeslots.push({
+                                            start_time: startTime[0].time,
+                                            end_time: endTime[0].time,
+                                        })
+                                    }
+                                }
+                                delete day.id
+                                subject.days.push(day)
+                            }
+                        }
+                    }
+                    result[0].subjects = subjects
+                }
+                const rating = await this.getRating(teacher_id)
+                if (rating.error) {
+                    resolve({ error: rating.error })
+                    return
+                }
+                result[0].rating = rating.result!.rating
                 resolve({ result: result[0] })
             } catch (error) {
                 resolve({ error: (error as QueryError).errno })
@@ -864,10 +936,24 @@ export class Database {
                     [`%${query}%`, `%${query}%`]
                 )
                 const teachers = await this.query<TeacherPublic>(
-                    `SELECT teacher.*, account.name, account.id AS account_id
-                    FROM teacher INNER JOIN account_teacher ON teacher.id = teacher_id
-                    INNER JOIN account ON account_id = account.id
-                    WHERE name LIKE ?`,
+                    `SELECT
+                    teacher.*,
+                    account.name,
+                    account.id AS account_id,
+                    COALESCE(AVG(r.rating), 0) AS rating
+                FROM
+                    teacher
+                INNER JOIN
+                    account_teacher ON teacher.id = account_teacher.teacher_id
+                INNER JOIN
+                    account ON account_teacher.account_id = account.id
+                LEFT JOIN
+                    rating r ON teacher.id = r.teacher_id
+                WHERE
+                    name LIKE ?
+                GROUP BY
+                    teacher.id, account.name, account.id;
+                `,
                     [`%${query}%`]
                 )
                 const result: Query = {
@@ -875,6 +961,24 @@ export class Database {
                     teachers: teachers,
                 }
                 resolve({ result: result })
+            } catch (error) {
+                resolve({ error: (error as QueryError).errno })
+            }
+        })
+    }
+
+    //rating
+    async getRating(teacher_id: Number): Promise<DatabaseResponse<Rating>> {
+        return new Promise(async (resolve) => {
+            try {
+                const result = await this.query<Rating>(
+                    "SELECT AVG(rating) as rating FROM rating WHERE teacher_id = ?",
+                    [teacher_id]
+                )
+                if (result[0].rating == null) {
+                    result[0].rating = 0
+                }
+                resolve({ result: result[0] })
             } catch (error) {
                 resolve({ error: (error as QueryError).errno })
             }
