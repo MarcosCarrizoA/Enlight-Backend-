@@ -294,7 +294,7 @@ app.delete("/account/picture", async (c) => {
 
 // Teacher
 app.get("/teacher", async (c) => {
-    const { id } = c.req.query(); 
+    const { id } = c.req.query();
     const teacher = await db.getTeacherPublic(Number(id));
     if (teacher.error) {
         c.status(500);
