@@ -633,45 +633,7 @@ export class Database {
                         [subjectIds.map((id) => id.id)]
                     )
                     for (const subject of subjects) {
-                        const dayIds = await this.query<ID>(
-                            "SELECT day_id AS id FROM timeslot WHERE subject_id = ?",
-                            [subject.id]
-                        )
-                        if (dayIds.length != 0) {
-                            subject.days = []
-                            const days = await this.query<Day>(
-                                "SELECT * FROM day WHERE id IN (?)",
-                                [dayIds.map((day) => day.id)]
-                            )
-                            for (const day of days) {
-                                const timeIds = await this.query<TimeID>(
-                                    "SELECT start_time_id, end_time_id FROM timeslot WHERE subject_id = ? AND day_id = ?",
-                                    [subject.id, day.id]
-                                )
-                                if (timeIds.length != 0) {
-                                    day.timeslots = []
-                                    for (const timeId in timeIds) {
-                                        const startTime =
-                                            await this.query<Time>(
-                                                "SELECT * FROM time WHERE id = ?",
-                                                [timeIds[0].start_time_id]
-                                            )
-                                        delete startTime[0].id
-                                        const endTime = await this.query<Time>(
-                                            "SELECT * FROM time WHERE id = ?",
-                                            [timeIds[0].end_time_id]
-                                        )
-                                        delete endTime[0].id
-                                        day.timeslots.push({
-                                            start_time: startTime[0].time,
-                                            end_time: endTime[0].time,
-                                        })
-                                    }
-                                }
-                                delete day.id
-                                subject.days.push(day)
-                            }
-                        }
+                        await this.getDays(subject)
                     }
                     result[0].subjects = subjects
                 }
@@ -688,7 +650,50 @@ export class Database {
         })
     }
 
-    async getTeacherPublic(teacher_id: Number): Promise<DatabaseResponse<TeacherPublic>> {
+    private async getDays(subject: Subject) {
+        const dayIds = await this.query<ID>(
+            "SELECT day_id AS id FROM timeslot WHERE subject_id = ?",
+            [subject.id]
+        )
+        if (dayIds.length != 0) {
+            subject.days = []
+            const days = await this.query<Day>(
+                "SELECT * FROM day WHERE id IN (?)",
+                [dayIds.map((day) => day.id)]
+            )
+            for (const day of days) {
+                const timeIds = await this.query<TimeID>(
+                    "SELECT start_time_id, end_time_id FROM timeslot WHERE subject_id = ? AND day_id = ?",
+                    [subject.id, day.id]
+                )
+                if (timeIds.length != 0) {
+                    day.timeslots = []
+                    for (const timeId in timeIds) {
+                        const startTime = await this.query<Time>(
+                            "SELECT * FROM time WHERE id = ?",
+                            [timeIds[0].start_time_id]
+                        )
+                        delete startTime[0].id
+                        const endTime = await this.query<Time>(
+                            "SELECT * FROM time WHERE id = ?",
+                            [timeIds[0].end_time_id]
+                        )
+                        delete endTime[0].id
+                        day.timeslots.push({
+                            start_time: startTime[0].time,
+                            end_time: endTime[0].time,
+                        })
+                    }
+                }
+                delete day.id
+                subject.days.push(day)
+            }
+        }
+    }
+
+    async getTeacherPublic(
+        teacher_id: Number
+    ): Promise<DatabaseResponse<TeacherPublic>> {
         return new Promise(async (resolve) => {
             try {
                 const result = await this.query<TeacherPublic>(
@@ -890,6 +895,27 @@ export class Database {
                 )
                 await this.completeTransaction(result.connection)
                 resolve({ result: result.insertIds[0][0] })
+            } catch (error) {
+                resolve({ error: (error as QueryError).errno })
+            }
+        })
+    }
+
+    async getSubject(id: number): Promise<DatabaseResponse<Subject>> {
+        return new Promise(async (resolve) => {
+            try {
+                const subject = await this.query<Subject>(
+                    `SELECT subject.*, category.name AS category_name
+                    FROM subject INNER JOIN category_subject ON subject.id = subject_id
+                    INNER JOIN category ON category_id = category.id WHERE subject.id = ?`,
+                    [id]
+                )
+                if (subject.length == 0) {
+                    resolve({})
+                    return
+                }
+                const days = await this.getDays(subject[0]);
+                resolve({ result: subject[0] })
             } catch (error) {
                 resolve({ error: (error as QueryError).errno })
             }

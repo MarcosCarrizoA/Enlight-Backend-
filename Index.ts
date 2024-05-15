@@ -294,16 +294,16 @@ app.delete("/account/picture", async (c) => {
 
 // Teacher
 app.get("/teacher", async (c) => {
-    const { id } = c.req.query();
-    const teacher = await db.getTeacherPublic(Number(id));
+    const { id } = c.req.query()
+    const teacher = await db.getTeacherPublic(Number(id))
     if (teacher.error) {
-        c.status(500);
-        return c.text("");
+        c.status(500)
+        return c.text("")
     }
-    delete teacher.result?.account_id;
-    c.status(200);
-    return c.json(teacher.result);
-});
+    delete teacher.result?.account_id
+    c.status(200)
+    return c.json(teacher.result)
+})
 
 app.put("/teacher", async (c) => {
     const { description } = await c.req.json()
@@ -331,6 +331,20 @@ app.get("/categories", async (c) => {
 })
 
 // Subject
+app.get("/subject/:id", async (c) => {
+    const { id } = c.req.param()
+    if (!id) {
+        c.status(400)
+        return c.text("")
+    }
+    const response = await db.getSubject(parseInt(id))
+    if (response.error) {
+        c.status(500)
+        return c.text("")
+    }
+    return c.json(response.result)
+})
+
 app.post("/subject", async (c) => {
     const { category_name, name, description, price, days } = await c.req.json()
     if (!category_name || !name || !description || !price || !days) {
