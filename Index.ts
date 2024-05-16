@@ -7,6 +7,7 @@ import { cors } from "hono/cors"
 import { Hono } from "hono"
 import token from "./Token"
 import { poweredBy } from "hono/powered-by"
+import { logger } from "hono/logger"
 
 type Variables = {
     id: number
@@ -22,6 +23,8 @@ const app = new Hono<{ Variables: Variables }>()
 app.use(cors())
 
 app.use(poweredBy())
+
+app.use(logger())
 
 // Unprotected endpoints
 app.get("/test", (c) => {
@@ -333,7 +336,7 @@ app.get("/categories", async (c) => {
 // Subject
 app.get("/subject/:id", async (c) => {
     const { id } = c.req.param()
-    if (!id) {
+    if (!id || !parseInt(id)) {
         c.status(400)
         return c.text("")
     }

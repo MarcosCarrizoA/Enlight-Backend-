@@ -633,7 +633,10 @@ export class Database {
                         [subjectIds.map((id) => id.id)]
                     )
                     for (const subject of subjects) {
-                        await this.getDays(subject)
+                        const days = await this.getDays(subject.id)
+                        if (days) {
+                            subject.days = days
+                        }
                     }
                     result[0].subjects = subjects
                 }
@@ -650,45 +653,49 @@ export class Database {
         })
     }
 
-    private async getDays(subject: Subject) {
-        const dayIds = await this.query<ID>(
-            "SELECT day_id AS id FROM timeslot WHERE subject_id = ?",
-            [subject.id]
-        )
-        if (dayIds.length != 0) {
-            subject.days = []
-            const days = await this.query<Day>(
-                "SELECT * FROM day WHERE id IN (?)",
-                [dayIds.map((day) => day.id)]
+    private async getDays(subject_id: number): Promise<Day[] | undefined> {
+        return new Promise(async (resolve) => {
+            const dayIds = await this.query<ID>(
+                "SELECT day_id AS id FROM timeslot WHERE subject_id = ?",
+                [subject_id]
             )
-            for (const day of days) {
-                const timeIds = await this.query<TimeID>(
-                    "SELECT start_time_id, end_time_id FROM timeslot WHERE subject_id = ? AND day_id = ?",
-                    [subject.id, day.id]
+            if (dayIds.length != 0) {
+                const list: Day[] = []
+                const days = await this.query<Day>(
+                    "SELECT * FROM day WHERE id IN (?)",
+                    [dayIds.map((day) => day.id)]
                 )
-                if (timeIds.length != 0) {
-                    day.timeslots = []
-                    for (const timeId in timeIds) {
-                        const startTime = await this.query<Time>(
-                            "SELECT * FROM time WHERE id = ?",
-                            [timeIds[0].start_time_id]
-                        )
-                        delete startTime[0].id
-                        const endTime = await this.query<Time>(
-                            "SELECT * FROM time WHERE id = ?",
-                            [timeIds[0].end_time_id]
-                        )
-                        delete endTime[0].id
-                        day.timeslots.push({
-                            start_time: startTime[0].time,
-                            end_time: endTime[0].time,
-                        })
+                for (const day of days) {
+                    const timeIds = await this.query<TimeID>(
+                        "SELECT start_time_id, end_time_id FROM timeslot WHERE subject_id = ? AND day_id = ?",
+                        [subject_id, day.id]
+                    )
+                    if (timeIds.length != 0) {
+                        day.timeslots = []
+                        for (const timeId in timeIds) {
+                            const startTime = await this.query<Time>(
+                                "SELECT * FROM time WHERE id = ?",
+                                [timeIds[0].start_time_id]
+                            )
+                            delete startTime[0].id
+                            const endTime = await this.query<Time>(
+                                "SELECT * FROM time WHERE id = ?",
+                                [timeIds[0].end_time_id]
+                            )
+                            delete endTime[0].id
+                            day.timeslots.push({
+                                start_time: startTime[0].time,
+                                end_time: endTime[0].time,
+                            })
+                        }
                     }
+                    delete day.id
+                    list.push(day)
                 }
-                delete day.id
-                subject.days.push(day)
+                resolve(list)
             }
-        }
+            resolve(undefined)
+        })
     }
 
     async getTeacherPublic(
@@ -874,7 +881,7 @@ export class Database {
                             await this.completeTransaction(result.connection)
                         }
                         secondSet.push({
-                            sql: "INSERT INTO timeslot VALUES (?, ?, ?, ?)",
+                            sql: "INSERT INTO timeslot VALUES (NULL, ?, ?, ?, ?)",
                             values: [
                                 dayId[0].id,
                                 startId ?? startTimeId[0].id,
@@ -914,7 +921,10 @@ export class Database {
                     resolve({})
                     return
                 }
-                const days = await this.getDays(subject[0]);
+                const days = await this.getDays(subject[0].id);
+                if (days) {
+                    subject[0].days = days
+                }
                 resolve({ result: subject[0] })
             } catch (error) {
                 resolve({ error: (error as QueryError).errno })
