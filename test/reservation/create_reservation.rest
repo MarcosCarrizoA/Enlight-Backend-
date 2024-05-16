@@ -1,0 +1,7 @@
+POST http://localhost/reservation
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTY2LCJpYXQiOjE3MTU4NzE2MzIsImV4cCI6MTcxNTg3MjUzMn0.E60TnONcOfX0CCDLgOkfdZs6glzC07hs5L2dswpulAg
+
+{
+    "timeslot_id": 1,
+    "date": "2024-5-16"
+}

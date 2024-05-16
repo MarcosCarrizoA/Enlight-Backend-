@@ -921,7 +921,7 @@ export class Database {
                     resolve({})
                     return
                 }
-                const days = await this.getDays(subject[0].id);
+                const days = await this.getDays(subject[0].id)
                 if (days) {
                     subject[0].days = days
                 }
@@ -1015,6 +1015,43 @@ export class Database {
                     result[0].rating = 0
                 }
                 resolve({ result: result[0] })
+            } catch (error) {
+                resolve({ error: (error as QueryError).errno })
+            }
+        })
+    }
+
+    // Reservation
+    async createReservation(
+        account_id: number,
+        timeslot_id: number,
+        date: string
+    ): Promise<DatabaseResponse<number>> {
+        return new Promise(async (resolve) => {
+            try {
+                const dateId = await this.query<ID>(
+                    "SELECT id FROM DATE WHERE date = ?",
+                    [date]
+                )
+                var id = undefined
+                if (dateId.length == 0) {
+                    const result = await this.multiTransaction([
+                        {
+                            sql: "INSERT INTO DATE VALUES (NULL, ?)",
+                            values: [date],
+                        },
+                    ])
+                    id = result.insertIds[0][0]
+                    await this.completeTransaction(result.connection)
+                }
+                const result = await this.multiTransaction([
+                    {
+                        sql: "INSERT INTO reservation VALUES (?, ?, ?)",
+                        values: [account_id, timeslot_id, id ?? dateId],
+                    },
+                ])
+                await this.completeTransaction(result.connection)
+                resolve({ result: result.insertIds[0][0] })
             } catch (error) {
                 resolve({ error: (error as QueryError).errno })
             }

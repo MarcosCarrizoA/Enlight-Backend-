@@ -411,6 +411,24 @@ app.get("/search", async (c) => {
     return c.json(response.result)
 })
 
+// Reservation
+app.post("/reservation", async (c) => {
+    const id = c.get("id")
+    const { timeslot_id, date } = await c.req.json()
+    if (!timeslot_id || !date) {
+        c.status(400)
+        return c.text("")
+    }
+    console.log(date);
+    
+    const response = await db.createReservation(id, timeslot_id, date)
+    if (response.error) {
+        c.status(500)
+        return c.text("")
+    }
+    return c.text(response.result!.toString())
+})
+
 Bun.serve({
     fetch: app.fetch,
     port: 80,
