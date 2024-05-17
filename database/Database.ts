@@ -6,118 +6,34 @@ import type {
     ResultSetHeader,
     RowDataPacket,
 } from "mysql2"
-
-interface Credentials extends RowDataPacket {
-    id: number
-    password: string
-    role_id: number
-}
-
-interface ID extends RowDataPacket {
-    id: number
-}
-
-interface TimeID extends RowDataPacket {
-    start_time_id: number
-    end_time_id: number
-}
-
-interface Token extends RowDataPacket {
-    token: string
-}
-
-interface Account extends RowDataPacket {
-    email: string
-    name: string
-    birthday: Date
-    address: string
-    picture?: string
-    teacher?: Teacher
-    categories?: Category[]
-}
-
-interface Picture extends RowDataPacket {
-    picture: Buffer
-}
-
-interface Role extends RowDataPacket {
-    id?: number
-    name: string
-}
-
-interface Teacher extends RowDataPacket {
-    id?: number
-    rating: number
-    description: string
-    categories: Category[]
-    subjects?: Subject[]
-}
-
-interface TeacherPublic extends RowDataPacket {
-    account_id?: number
-    id?: number
-    rating: number
-    name: string
-    description: string
-    picture?: string
-}
-
-interface Subject extends RowDataPacket {
-    id: number
-    category_name: string
-    name: string
-    description: string
-    price: number
-    days?: Day[]
-}
-
-interface Day extends RowDataPacket {
-    id?: number
-    name: string
-    timeslots?: Timeslot[]
-}
-
-interface Rating extends RowDataPacket {
-    rating: number
-}
-
-interface Time extends RowDataPacket {
-    id?: number
-    time: string
-}
-
-interface Timeslot {
-    id?: number
-    start_time: string
-    end_time: string
-}
-
-interface Category extends RowDataPacket {
-    id?: number
-    name: String
-}
-
-interface DatabaseResponse<T> {
-    error?: number
-    result?: T
-}
-
-interface TransactionResult {
-    connection: PoolConnection
-    insertIds: number[][]
-}
-
-interface Query {
-    teachers?: TeacherPublic[]
-    subjects?: Subject[]
-}
-
-interface Subtransaction {
-    sql: string
-    values: any[]
-    /** Insert ID of previous subtransaction to be inserted as the first value parameter. */
-    previousInsert?: number[][]
-}
+import {
+    type DayInternal,
+    type TimeInternal,
+    type Account,
+    type Category,
+    type Credentials,
+    type DatabaseResponse,
+    type DateInternal,
+    type Day,
+    type ID,
+    type Picture,
+    type Query,
+    type Rating,
+    type Reservation,
+    type ReservationInternal,
+    type Role,
+    type Subject,
+    type Subtransaction,
+    type Teacher,
+    type TeacherPublic,
+    type Time,
+    type TimeID,
+    type Timeslot,
+    type TimeslotInternal,
+    type Token,
+    type TransactionResult,
+    type Student,
+} from "./Interfaces"
 
 export class Database {
     private readonly pool: Pool
@@ -1041,8 +957,8 @@ export class Database {
                             values: [date],
                         },
                     ])
-                    id = result.insertIds[0][0]
                     await this.completeTransaction(result.connection)
+                    id = result.insertIds[0][0]
                 }
                 const result = await this.multiTransaction([
                     {
@@ -1052,6 +968,101 @@ export class Database {
                 ])
                 await this.completeTransaction(result.connection)
                 resolve({ result: result.insertIds[0][0] })
+            } catch (error) {
+                resolve({ error: (error as QueryError).errno })
+            }
+        })
+    }
+
+    async getReservations(
+        account_id: number
+    ): Promise<DatabaseResponse<Reservation[]>> {
+        return new Promise(async (resolve) => {
+            try {
+                const reservations = await this.query<ReservationInternal>(
+                    "SELECT * FROM reservation WHERE account_id = ?",
+                    [account_id]
+                )
+                const result: Reservation[] = []
+                for (const reservation of reservations) {
+                    const subjectId = (
+                        await this.query<ID>(
+                            "SELECT subject_id AS id FROM subject WHERE id = ?",
+                            [reservation.timeslot_id]
+                        )
+                    )[0]
+                    const subject = await this.getSubject(subjectId.id)
+                    const timeslot = await this.getTimeslot(
+                        reservation.timeslot_id
+                    )
+                    const date = await this.getDate(reservation.date_id)
+                    result.push({
+                        date: date,
+                        subject: subject.result!,
+                        timeslot: timeslot,
+                    })
+                }
+                resolve({ result: result })
+            } catch (error) {
+                resolve({ error: (error as QueryError).errno })
+            }
+        })
+    }
+
+    private async getTimeslot(id: number): Promise<Timeslot> {
+        return new Promise(async (resolve) => {
+            const result = (
+                await this.query<TimeslotInternal>(
+                    "SELECT * FROM timeslot WHERE id = ?",
+                    [id]
+                )
+            )[0]
+            const start_time = await this.getTime(result.start_time_id)
+            const end_time = await this.getTime(result.end_time_id)
+            resolve({ start_time: start_time, end_time: end_time })
+        })
+    }
+
+    private async getDay(id: number): Promise<string> {
+        return new Promise(async (resolve) => {
+            const result = await this.query<DayInternal>(
+                "SELECT * FROM day WHERE id = ?",
+                [id]
+            )
+            if (result.length == 0) throw Error("Day not found.")
+            resolve(result[0].name)
+        })
+    }
+
+    private async getTime(id: number): Promise<string> {
+        return new Promise(async (resolve) => {
+            const result = await this.query<TimeInternal>(
+                "SELECT * FROM time WHERE id = ?",
+                [id]
+            )
+            if (result.length == 0) throw Error("Time not found.")
+            resolve(result[0].time)
+        })
+    }
+
+    private async getDate(id: number): Promise<Date> {
+        return new Promise(async (resolve) => {
+            const result = await this.query<DateInternal>(
+                "SELECT * FROM DATE WHERE id = ?",
+                [id]
+            )
+            if (result.length == 0) throw Error("Date not found.")
+            resolve(result[0].date)
+        })
+    }
+
+    async getStudent(account_id: number): Promise<DatabaseResponse<Student>> {
+        return new Promise(async (resolve) => {
+            try {
+                const reservations = await this.getReservations(account_id)
+                resolve({
+                    result: { reservations: reservations.result! } as Student,
+                })
             } catch (error) {
                 resolve({ error: (error as QueryError).errno })
             }

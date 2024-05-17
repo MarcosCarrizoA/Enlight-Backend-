@@ -1,6 +1,6 @@
 import auth from "./middleware/Auth"
-import database from "./Database"
-import type { Database } from "./Database"
+import database from "./database/Database"
+import type { Database } from "./database/Database"
 import mailer from "./Mailer"
 import type { Mailer } from "./Mailer"
 import { cors } from "hono/cors"
@@ -230,6 +230,14 @@ app.get("/account", async (c) => {
             return c.text("")
         }
         response.result.teacher = teacher.result
+    }
+    if (role.result?.name == "student") {
+        const student = await db.getStudent(id)
+        if (student.error) {
+            c.status(500)
+            return c.text("")
+        }
+        response.result.student = student.result
     }
     if (include_picture == "true") {
         const picture = await db.getPicture(id)
