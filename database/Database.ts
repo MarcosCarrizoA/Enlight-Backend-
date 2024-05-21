@@ -979,7 +979,7 @@ export class Database {
         return new Promise(async (resolve) => {
             try {
                 const result = await this.query<Reservation>(
-                    `select s.name as name_subject, a.name as name_teacher, d.date as date, t2.time as start_time, t3.time as end_time 
+                    `select s.name as name_subject, s.id as subject_id, a.name as name_teacher, at.teacher_id as teacher_id, d.date as date, t2.time as start_time, t3.time as end_time
                     from reservation
                     inner join timeslot t on t.id = reservation.timeslot_id
                     inner join subject s on s.id = t.subject_id

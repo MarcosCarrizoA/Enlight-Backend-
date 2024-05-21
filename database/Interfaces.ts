@@ -116,8 +116,8 @@ export interface Reservation extends RowDataPacket {
     name_teacher: string
     teacher_id: number
     date: Date
-    start_time: string
-    end_time: string
+    start_time: Time
+    end_time: Time
 }
 
 export interface Category extends RowDataPacket {
