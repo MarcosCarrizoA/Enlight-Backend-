@@ -1,6 +1,6 @@
 import auth from "./middleware/Auth"
-import database from "./Database"
-import type { Database } from "./Database"
+import database from "./database/Database"
+import type { Database } from "./database/Database"
 import mailer from "./Mailer"
 import type { Mailer } from "./Mailer"
 import { cors } from "hono/cors"
@@ -231,6 +231,14 @@ app.get("/account", async (c) => {
         }
         response.result.teacher = teacher.result
     }
+    if (role.result?.name == "student") {
+        const student = await db.getStudent(id)
+        if (student.error) {
+            c.status(500)
+            return c.text("")
+        }
+        response.result.student = student.result
+    }
     if (include_picture == "true") {
         const picture = await db.getPicture(id)
         if (picture.error) {
@@ -409,6 +417,22 @@ app.get("/search", async (c) => {
         }
     }
     return c.json(response.result)
+})
+
+// Reservation
+app.post("/reservation", async (c) => {
+    const id = c.get("id")
+    const { timeslot_id, date } = await c.req.json()
+    if (!timeslot_id || !date) {
+        c.status(400)
+        return c.text("")
+    }
+    const response = await db.createReservation(id, timeslot_id, date)
+    if (response.error) {
+        c.status(500)
+        return c.text("")
+    }
+    return c.text(response.result!.toString())
 })
 
 Bun.serve({
