@@ -583,23 +583,24 @@ export class Database {
                 )
                 for (const day of days) {
                     const timeIds = await this.query<TimeID>(
-                        "SELECT start_time_id, end_time_id FROM timeslot WHERE subject_id = ? AND day_id = ?",
+                        "SELECT id, start_time_id, end_time_id FROM timeslot WHERE subject_id = ? AND day_id = ?",
                         [subject_id, day.id]
                     )
                     if (timeIds.length != 0) {
                         day.timeslots = []
-                        for (const timeId in timeIds) {
+                        for (const timeId of timeIds) {
                             const startTime = await this.query<Time>(
                                 "SELECT * FROM time WHERE id = ?",
-                                [timeIds[0].start_time_id]
+                                [timeId.start_time_id]
                             )
                             delete startTime[0].id
                             const endTime = await this.query<Time>(
                                 "SELECT * FROM time WHERE id = ?",
-                                [timeIds[0].end_time_id]
+                                [timeId.end_time_id]
                             )
                             delete endTime[0].id
                             day.timeslots.push({
+                                id: timeId.id,
                                 start_time: startTime[0].time,
                                 end_time: endTime[0].time,
                             })
@@ -963,7 +964,7 @@ export class Database {
                 const result = await this.multiTransaction([
                     {
                         sql: "INSERT INTO reservation VALUES (?, ?, ?)",
-                        values: [account_id, timeslot_id, id ?? dateId],
+                        values: [account_id, timeslot_id, id ?? dateId[0].id],
                     },
                 ])
                 await this.completeTransaction(result.connection)

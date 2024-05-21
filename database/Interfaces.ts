@@ -11,6 +11,7 @@ export interface ID extends RowDataPacket {
 }
 
 export interface TimeID extends RowDataPacket {
+    id: number
     start_time_id: number
     end_time_id: number
 }

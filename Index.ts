@@ -427,8 +427,6 @@ app.post("/reservation", async (c) => {
         c.status(400)
         return c.text("")
     }
-    console.log(date);
-    
     const response = await db.createReservation(id, timeslot_id, date)
     if (response.error) {
         c.status(500)
