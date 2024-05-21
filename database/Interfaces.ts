@@ -109,16 +109,15 @@ export interface TimeslotInternal extends RowDataPacket {
     end_time_id: number
 }
 
-export interface Reservation {
-    subject: Subject
-    timeslot: Timeslot
-    date: Date
-}
 
-export interface ReservationInternal extends RowDataPacket {
-    account_id: number
-    timeslot_id: number
-    date_id: number
+export interface Reservation extends RowDataPacket {
+    name_subject: string
+    subject_id: number
+    name_teacher: string
+    teacher_id: number
+    date: Date
+    start_time: string
+    end_time: string
 }
 
 export interface Category extends RowDataPacket {

@@ -20,7 +20,6 @@ import {
     type Query,
     type Rating,
     type Reservation,
-    type ReservationInternal,
     type Role,
     type Subject,
     type Subtransaction,
@@ -975,34 +974,24 @@ export class Database {
         })
     }
 
-    async getReservations(
-        account_id: number
-    ): Promise<DatabaseResponse<Reservation[]>> {
+    //reservations
+    async getReservations(account_id: Number): Promise<DatabaseResponse<Reservation[]>> {
         return new Promise(async (resolve) => {
             try {
-                const reservations = await this.query<ReservationInternal>(
-                    "SELECT * FROM reservation WHERE account_id = ?",
+                const result = await this.query<Reservation>(
+                    `select s.name as name_subject, a.name as name_teacher, d.date as date, t2.time as start_time, t3.time as end_time 
+                    from reservation
+                    inner join timeslot t on t.id = reservation.timeslot_id
+                    inner join subject s on s.id = t.subject_id
+                    inner join teacher_subject ts on s.id = ts.subject_id
+                    inner join account_teacher at on at.teacher_id = ts.teacher_id
+                    inner join account a on a.id = at.account_id
+                    inner join date d on d.id = reservation.date_id
+                    inner join time t3 on t3.id = t.end_time_id
+                    inner join time t2 on t2.id = t.start_time_id
+                    where reservation.account_id = ?`,
                     [account_id]
                 )
-                const result: Reservation[] = []
-                for (const reservation of reservations) {
-                    const subjectId = (
-                        await this.query<ID>(
-                            "SELECT subject_id AS id FROM subject WHERE id = ?",
-                            [reservation.timeslot_id]
-                        )
-                    )[0]
-                    const subject = await this.getSubject(subjectId.id)
-                    const timeslot = await this.getTimeslot(
-                        reservation.timeslot_id
-                    )
-                    const date = await this.getDate(reservation.date_id)
-                    result.push({
-                        date: date,
-                        subject: subject.result!,
-                        timeslot: timeslot,
-                    })
-                }
                 resolve({ result: result })
             } catch (error) {
                 resolve({ error: (error as QueryError).errno })

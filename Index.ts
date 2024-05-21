@@ -420,6 +420,16 @@ app.get("/search", async (c) => {
 })
 
 // Reservation
+app.get("/reservation", async (c) => {
+    const id = c.get("id")
+    const response = await db.getReservations(id)
+    if (response.error) {
+        c.status(500)
+        return c.text("")
+    }
+    return c.json(response.result)
+})
+
 app.post("/reservation", async (c) => {
     const id = c.get("id")
     const { timeslot_id, date } = await c.req.json()
