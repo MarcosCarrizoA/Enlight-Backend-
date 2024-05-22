@@ -43,7 +43,7 @@ app.post("/login", async (c) => {
         return c.text("")
     }
     if (!response.result) {
-        c.status(404)
+        c.status(401)
         return c.text("")
     }
     const verified = await Bun.password.verify(
