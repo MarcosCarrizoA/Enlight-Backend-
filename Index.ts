@@ -251,6 +251,24 @@ app.get("/account", async (c) => {
     return c.json(response.result)
 })
 
+app.get("/account/:id", async (c) => {
+    const { id } = c.req.param()
+    if (!id) {
+        c.status(400)
+        return c.text("")
+    }
+    const response = await db.getAccount(parseInt(id))
+    if (response.error) {
+        c.status(500)
+        return c.text("")
+    }
+    if (!response.result) {
+        c.status(404)
+        return c.text("")
+    }
+    return c.json(response.result)
+})
+
 app.put("/account", async (c) => {
     const { name, birthday, address } = await c.req.json()
     if (!name || !birthday || !address) {
