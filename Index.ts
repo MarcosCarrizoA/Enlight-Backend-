@@ -496,6 +496,14 @@ app.get("/chat", async (c) => {
         c.status(500)
         return c.text("")
     }
+    for (const account of response.result!) {
+        const picture = await db.getPicture(account.id)
+        if (picture.error) {
+            c.status(500)
+            return c.text("")
+        }
+        account.picture = picture.result?.picture.toString("base64")
+    }
     const json = { id: id, chats: response.result }
     return c.json(json)
 })
