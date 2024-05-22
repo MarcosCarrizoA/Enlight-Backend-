@@ -1,0 +1,6 @@
+POST http://localhost/chat
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTY2LCJpYXQiOjE3MTYzODkwMDIsImV4cCI6MTcxNjM4OTkwMn0.x4EGgKWsZOgaXtc_lxvhWefUhvVwuZsiv2U9LWLWzHA
+
+{
+    "receiver_id": 167
+}

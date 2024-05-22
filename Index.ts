@@ -478,6 +478,59 @@ app.delete("/reservation", async (c) => {
     return c.text("")
 })
 
+// Chats
+app.get("/chat", async (c) => {
+    const id = c.get("id")
+    const role = await db.getRole(id)
+    if (role.error) {
+        c.status(500)
+        return c.text("")
+    }
+    const response =
+        role.result?.name == "student"
+            ? await db.getStudentChats(id)
+            : role.result?.name == "teacher"
+            ? await db.getTeacherChats(id)
+            : null
+    if (!response || response.error) {
+        c.status(500)
+        return c.text("")
+    }
+    const json = { id: id, chats: response.result }
+    return c.json(json)
+})
+
+app.post("/chat", async (c) => {
+    const id = c.get("id")
+    const { receiver_id } = await c.req.json()
+    if (!receiver_id) {
+        c.status(400)
+        return c.text("")
+    }
+    const role = await db.getRole(id)
+    if (role.error) {
+        c.status(500)
+        return c.text("")
+    }
+    const receiverRole = await db.getRole(receiver_id)
+    if (receiverRole.error) {
+        c.status(500)
+        return c.text("")
+    }
+    if (role.result?.name == receiverRole.result?.name) {
+        c.status(403)
+        return c.text("")
+    }
+    const studentId = role.result?.name == "student" ? id : receiver_id
+    const teacherId = role.result?.name == "teacher" ? id : receiver_id
+    const response = await db.createChat(studentId, teacherId)
+    if (response.error) {
+        c.status(response.error == 1062 ? 409 : 500)
+        return c.text("")
+    }
+    return c.text("Chat created successfully.")
+})
+
 Bun.serve({
     fetch: app.fetch,
     port: 80,
