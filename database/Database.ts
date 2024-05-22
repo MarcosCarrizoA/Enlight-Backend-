@@ -978,7 +978,7 @@ export class Database {
     async getReservations(account_id: Number): Promise<DatabaseResponse<Reservation[]>> {
         return new Promise(async (resolve) => {
             try {
-                const result = await this.query<Reservation>(
+                let result = await this.query<Reservation>(
                     `select reservation.id as reservation_id, t.id as timeslot_id, s.name as name_subject, s.id as subject_id, a.name as name_teacher, at.teacher_id as teacher_id, d.date as date, t2.time as start_time, t3.time as end_time
                     from reservation
                     inner join timeslot t on t.id = reservation.timeslot_id
@@ -992,6 +992,21 @@ export class Database {
                     where reservation.account_id = ?`,
                     [account_id]
                 )
+                if (result.length == 0) {
+                    result = await this.query<Reservation>(
+                        `select reservation.id as reservation_id, t.id as timeslot_id, s.name as name_subject, s.id as subject_id, a.name as name_teacher, at.teacher_id as teacher_id, d.date as date, t2.time as start_time, t3.time as end_time
+                    from reservation
+                    inner join timeslot t on t.id = reservation.timeslot_id
+                    inner join subject s on s.id = t.subject_id
+                    inner join teacher_subject ts on s.id = ts.subject_id
+                    inner join account_teacher at on at.teacher_id = ts.teacher_id
+                    inner join account a on a.id = reservation.account_id
+                    inner join date d on d.id = reservation.date_id
+                    inner join time t3 on t3.id = t.end_time_id
+                    inner join time t2 on t2.id = t.start_time_id
+                    where at.account_id = ?`,
+                        [account_id])
+                }
                 resolve({ result: result })
             } catch (error) {
                 resolve({ error: (error as QueryError).errno })
