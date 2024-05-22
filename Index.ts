@@ -445,6 +445,21 @@ app.post("/reservation", async (c) => {
     return c.text(response.result!.toString())
 })
 
+app.delete("/reservation", async (c) => {
+    const { id } = await c.req.json()
+    if (!id) {
+        c.status(400)
+        return c.text("")
+    }
+    const response = await db.deleteReservation(id)
+    if (response.error) {
+        c.status(500)
+        return c.text(id)
+    }
+    c.status(200)
+    return c.text("")
+})
+
 Bun.serve({
     fetch: app.fetch,
     port: 80,

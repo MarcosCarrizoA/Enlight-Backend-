@@ -33,6 +33,7 @@ import {
     type TransactionResult,
     type Student,
 } from "./Interfaces"
+import { resolve } from "bun"
 
 export class Database {
     private readonly pool: Pool
@@ -962,7 +963,7 @@ export class Database {
                 }
                 const result = await this.multiTransaction([
                     {
-                        sql: "INSERT INTO reservation VALUES (?, ?, ?)",
+                        sql: "INSERT INTO reservation VALUES (NULL, ?, ?, ?)",
                         values: [account_id, timeslot_id, id ?? dateId[0].id],
                     },
                 ])
@@ -974,12 +975,11 @@ export class Database {
         })
     }
 
-    //reservations
     async getReservations(account_id: Number): Promise<DatabaseResponse<Reservation[]>> {
         return new Promise(async (resolve) => {
             try {
                 const result = await this.query<Reservation>(
-                    `select s.name as name_subject, s.id as subject_id, a.name as name_teacher, at.teacher_id as teacher_id, d.date as date, t2.time as start_time, t3.time as end_time
+                    `select reservation.id as reservation_id, t.id as timeslot_id, s.name as name_subject, s.id as subject_id, a.name as name_teacher, at.teacher_id as teacher_id, d.date as date, t2.time as start_time, t3.time as end_time
                     from reservation
                     inner join timeslot t on t.id = reservation.timeslot_id
                     inner join subject s on s.id = t.subject_id
@@ -997,6 +997,18 @@ export class Database {
                 resolve({ error: (error as QueryError).errno })
             }
         })
+    }
+
+    async deleteReservation(id: Number): Promise<DatabaseResponse<null>> {
+        return new Promise(async (resolve) => {
+            try {
+                await this.transaction("DELETE FROM reservation WHERE id = ?", [id])
+                resolve({})
+            } catch (error) {
+                resolve({ error: (error as QueryError).errno })
+            }
+        }
+        )
     }
 
     private async getTimeslot(id: number): Promise<Timeslot> {
