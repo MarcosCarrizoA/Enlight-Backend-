@@ -251,6 +251,24 @@ app.get("/account", async (c) => {
     return c.json(response.result)
 })
 
+app.get("/account/:id", async (c) => {
+    const { id } = c.req.param()
+    if (!id) {
+        c.status(400)
+        return c.text("")
+    }
+    const response = await db.getAccount(parseInt(id))
+    if (response.error) {
+        c.status(500)
+        return c.text("")
+    }
+    if (!response.result) {
+        c.status(404)
+        return c.text("")
+    }
+    return c.json(response.result)
+})
+
 app.put("/account", async (c) => {
     const { name, birthday, address } = await c.req.json()
     if (!name || !birthday || !address) {
@@ -458,6 +476,67 @@ app.delete("/reservation", async (c) => {
     }
     c.status(200)
     return c.text("")
+})
+
+// Chats
+app.get("/chat", async (c) => {
+    const id = c.get("id")
+    const role = await db.getRole(id)
+    if (role.error) {
+        c.status(500)
+        return c.text("")
+    }
+    const response =
+        role.result?.name == "student"
+            ? await db.getStudentChats(id)
+            : role.result?.name == "teacher"
+            ? await db.getTeacherChats(id)
+            : null
+    if (!response || response.error) {
+        c.status(500)
+        return c.text("")
+    }
+    for (const account of response.result!) {
+        const picture = await db.getPicture(account.id)
+        if (picture.error) {
+            c.status(500)
+            return c.text("")
+        }
+        account.picture = picture.result?.picture.toString("base64")
+    }
+    const json = { id: id, chats: response.result }
+    return c.json(json)
+})
+
+app.post("/chat", async (c) => {
+    const id = c.get("id")
+    const { receiver_id } = await c.req.json()
+    if (!receiver_id) {
+        c.status(400)
+        return c.text("")
+    }
+    const role = await db.getRole(id)
+    if (role.error) {
+        c.status(500)
+        return c.text("")
+    }
+    const receiverRole = await db.getRole(receiver_id)
+    if (receiverRole.error) {
+        c.status(500)
+        return c.text("")
+    }
+    if (role.result?.name == receiverRole.result?.name) {
+        c.status(403)
+        return c.text("")
+    }
+    const studentId = role.result?.name == "student" ? id : receiver_id
+    const teacherId = role.result?.name == "teacher" ? id : receiver_id
+    const response = await db.createChat(studentId, teacherId)
+    if (response.error) {
+        c.status(response.error == 1062 ? 409 : 500)
+        return c.text("")
+    }
+    return c.text("Chat created successfully.")
 })
 
 Bun.serve({

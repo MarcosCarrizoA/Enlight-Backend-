@@ -1,4 +1,4 @@
-POST http://movieweb.mediaversetv.com/login
+POST http://localhost/login
 Content-Type: application/json
 
 {
@@ -8,7 +8,7 @@ Content-Type: application/json
 
 ###
 
-POST http://movieweb.mediaversetv.com/login
+POST http://localhost/login
 Content-Type: application/json
 
 {

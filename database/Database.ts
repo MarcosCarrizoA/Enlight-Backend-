@@ -975,7 +975,9 @@ export class Database {
         })
     }
 
-    async getReservations(account_id: Number): Promise<DatabaseResponse<Reservation[]>> {
+    async getReservations(
+        account_id: Number
+    ): Promise<DatabaseResponse<Reservation[]>> {
         return new Promise(async (resolve) => {
             try {
                 let result = await this.query<Reservation>(
@@ -1017,13 +1019,14 @@ export class Database {
     async deleteReservation(id: Number): Promise<DatabaseResponse<null>> {
         return new Promise(async (resolve) => {
             try {
-                await this.transaction("DELETE FROM reservation WHERE id = ?", [id])
+                await this.transaction("DELETE FROM reservation WHERE id = ?", [
+                    id,
+                ])
                 resolve({})
             } catch (error) {
                 resolve({ error: (error as QueryError).errno })
             }
-        }
-        )
+        })
     }
 
     private async getTimeslot(id: number): Promise<Timeslot> {
@@ -1080,6 +1083,65 @@ export class Database {
                 resolve({
                     result: { reservations: reservations.result! } as Student,
                 })
+            } catch (error) {
+                resolve({ error: (error as QueryError).errno })
+            }
+        })
+    }
+
+    async getStudentChats(
+        account_id: number
+    ): Promise<DatabaseResponse<Account[]>> {
+        return new Promise(async (resolve) => {
+            try {
+                const accounts = await this.query<Account>(
+                    `SELECT account.* FROM chat INNER JOIN account
+                    ON chat.teacher_account_id = account.id
+                    WHERE chat.student_account_id = ?`,
+                    [account_id]
+                )
+                for (const account of accounts) {
+                    delete account.password
+                }
+                resolve({ result: accounts })
+            } catch (error) {
+                resolve({ error: (error as QueryError).errno })
+            }
+        })
+    }
+
+    async getTeacherChats(
+        account_id: number
+    ): Promise<DatabaseResponse<Account[]>> {
+        return new Promise(async (resolve) => {
+            try {
+                const accounts = await this.query<Account>(
+                    `SELECT account.* FROM chat INNER JOIN account
+                    ON chat.student_account_id = account.id
+                    WHERE chat.teacher_account_id = ?`,
+                    [account_id]
+                )
+                for (const account of accounts) {
+                    delete account.password
+                }
+                resolve({ result: accounts })
+            } catch (error) {
+                resolve({ error: (error as QueryError).errno })
+            }
+        })
+    }
+
+    async createChat(
+        studentId: number,
+        teacherId: number
+    ): Promise<DatabaseResponse<null>> {
+        return new Promise(async (resolve) => {
+            try {
+                const result = await this.transaction(
+                    "INSERT INTO chat VALUES (?, ?)",
+                    [studentId, teacherId]
+                )
+                resolve({})
             } catch (error) {
                 resolve({ error: (error as QueryError).errno })
             }
