@@ -1,5 +1,5 @@
 import type { MiddlewareHandler } from "hono/types"
-import token from "../Token"
+import { decodeAccessToken, decodeRefreshToken } from "../util/token"
 
 const authenticate: MiddlewareHandler = async (c, next) => {
     const authHeader = c.req.header("Authorization")
@@ -8,7 +8,7 @@ const authenticate: MiddlewareHandler = async (c, next) => {
         c.status(401)
         return c.text("")
     }
-    const decoded = await token.decodeAccessToken(accessToken!)
+    const decoded = await decodeAccessToken(accessToken!)
     if (!decoded) {
         c.status(401)
         return c.text("")
@@ -24,7 +24,7 @@ const refresh: MiddlewareHandler = async (c, next) => {
         c.status(401)
         return c.text("")
     }
-    const decoded = await token.decodeRefreshToken(refreshToken!)
+    const decoded = await decodeRefreshToken(refreshToken!)
     if (!decoded) {
         c.status(401)
         return c.text("")

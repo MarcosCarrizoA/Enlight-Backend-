@@ -81,7 +81,7 @@ async function decodePasswordToken(token: string): Promise<TokenResponse> {
     })
 }
 
-export default {
+export {
     signAccessToken,
     decodeAccessToken,
     signRefreshToken,

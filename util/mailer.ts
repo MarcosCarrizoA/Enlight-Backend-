@@ -1,6 +1,6 @@
 import nodemailer, { type Transporter } from "nodemailer"
 
-export class Mailer {
+class Mailer {
     private transporter: Transporter
 
     constructor() {
@@ -53,6 +53,6 @@ export class Mailer {
     }
 }
 
-export default function mailer() {
-    return new Mailer()
-}
+const mailer = new Mailer()
+
+export default mailer

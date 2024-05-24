@@ -32,10 +32,9 @@ import {
     type Token,
     type TransactionResult,
     type Student,
-} from "./Interfaces"
-import { resolve } from "bun"
+} from "./interfaces"
 
-export class Database {
+class Database {
     private readonly pool: Pool
 
     constructor() {
@@ -1007,7 +1006,8 @@ export class Database {
                     inner join time t3 on t3.id = t.end_time_id
                     inner join time t2 on t2.id = t.start_time_id
                     where at.account_id = ?`,
-                        [account_id])
+                        [account_id]
+                    )
                 }
                 resolve({ result: result })
             } catch (error) {
@@ -1149,6 +1149,6 @@ export class Database {
     }
 }
 
-export default function database(): Database {
-    return new Database()
-}
+const database = new Database()
+
+export default database
