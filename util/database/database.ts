@@ -732,7 +732,8 @@ class Database {
         name: string,
         description: string,
         price: number,
-        days: Day[]
+        days: Day[],
+        online_available: boolean
     ): Promise<DatabaseResponse<number>> {
         return new Promise(async (resolve) => {
             try {
@@ -810,8 +811,8 @@ class Database {
                 const result = await this.multiTransaction(
                     [
                         {
-                            sql: "INSERT INTO subject VALUES (NULL, ?, ?, ?)",
-                            values: [name, description, price],
+                            sql: "INSERT INTO subject VALUES (NULL, ?, ?, ?, ?)",
+                            values: [name, description, price, online_available],
                         },
                     ],
                     secondSet

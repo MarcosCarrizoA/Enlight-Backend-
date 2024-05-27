@@ -22,8 +22,8 @@ app.get("/:id", async (c) => {
 })
 
 app.post("/", async (c) => {
-    const { category_name, name, description, price, days } = await c.req.json()
-    if (!category_name || !name || !description || !price || !days) {
+    const { category_name, name, description, price, days, online_available } = await c.req.json()
+    if (!category_name || !name || !description || !price || !days || !online_available) {
         c.status(400)
         return c.text("")
     }
@@ -34,7 +34,8 @@ app.post("/", async (c) => {
         name,
         description,
         price,
-        days
+        days,
+        online_available
     )
     if (response.error) {
         c.status(500)
