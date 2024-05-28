@@ -733,10 +733,15 @@ class Database {
         description: string,
         price: number,
         days: Day[],
-        online_available: boolean
+        modality: string,
+        size: number
     ): Promise<DatabaseResponse<number>> {
         return new Promise(async (resolve) => {
             try {
+                const modalityId = await this.query<ID>(
+                    "SELECT id FROM class_modality WHERE class_modality.option = ?",
+                    [modality.toLowerCase()]
+                )
                 const teacherId = await this.query<ID>(
                     "SELECT teacher_id as id FROM account_teacher WHERE account_id = ?",
                     [accountId]
@@ -812,7 +817,7 @@ class Database {
                     [
                         {
                             sql: "INSERT INTO subject VALUES (NULL, ?, ?, ?, ?)",
-                            values: [name, description, price, online_available],
+                            values: [name, description, price, size, modalityId[0].id],
                         },
                     ],
                     secondSet
@@ -961,10 +966,23 @@ class Database {
                     await this.completeTransaction(result.connection)
                     id = result.insertIds[0][0]
                 }
+                const size = await this.query<ID> (
+                    "SELECT size FROM subject INNER JOIN timeslot ON timeslot.subject_id = subject.id WHERE timeslot.id = ?",
+                    [timeslot_id])
+                const reservations = await this.query<ID>(
+                    "SELECT COUNT(timeslot_id) as current_student_count FROM reservation WHERE timeslot_id = ? AND date_id = ? GROUP BY timeslot_id",
+                    [timeslot_id, id ?? dateId[0].id]
+                )
+                console.log("current students: "+reservations[0]["amount"], "size: "+size[0]["size"])
+                if (reservations[0] != undefined && reservations[0]["current_student_count"] >= size[0]["size"]) {
+                    console.log("siii")
+                    resolve({ error: 66 })
+                    return
+                }
                 const result = await this.multiTransaction([
                     {
-                        sql: "INSERT INTO reservation VALUES (NULL, ?, ?, ?)",
-                        values: [account_id, timeslot_id, id ?? dateId[0].id],
+                        sql: "INSERT INTO reservation VALUES (NULL, ?, ?, ?, ?)",
+                        values: [account_id, timeslot_id, id ?? dateId[0].id, 1],
                     },
                 ])
                 await this.completeTransaction(result.connection)

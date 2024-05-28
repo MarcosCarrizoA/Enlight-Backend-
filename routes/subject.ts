@@ -12,6 +12,7 @@ app.get("/:id", async (c) => {
     if (!id || !parseInt(id)) {
         c.status(400)
         return c.text("")
+    
     }
     const response = await database.getSubject(parseInt(id))
     if (response.error) {
@@ -22,8 +23,8 @@ app.get("/:id", async (c) => {
 })
 
 app.post("/", async (c) => {
-    const { category_name, name, description, price, days, online_available } = await c.req.json()
-    if (!category_name || !name || !description || !price || !days || !online_available) {
+    const { category_name, name, description, price, days, modality, size } = await c.req.json()
+    if (!category_name || !name || !description || !price || !days || !modality || !size) {
         c.status(400)
         return c.text("")
     }
@@ -35,7 +36,8 @@ app.post("/", async (c) => {
         description,
         price,
         days,
-        online_available
+        modality,
+        size
     )
     if (response.error) {
         c.status(500)
