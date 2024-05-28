@@ -973,9 +973,7 @@ class Database {
                     "SELECT COUNT(timeslot_id) as current_student_count FROM reservation WHERE timeslot_id = ? AND date_id = ? GROUP BY timeslot_id",
                     [timeslot_id, id ?? dateId[0].id]
                 )
-                console.log("current students: "+reservations[0]["amount"], "size: "+size[0]["size"])
                 if (reservations[0] != undefined && reservations[0]["current_student_count"] >= size[0]["size"]) {
-                    console.log("siii")
                     resolve({ error: 66 })
                     return
                 }
