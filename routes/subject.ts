@@ -7,12 +7,20 @@ const app = new Hono<{ Variables: Variables }>()
 
 app.use(auth.authenticate)
 
-app.get("/:id", async (c) => {
+app.get("/:id", async (c) => {  
     const { id } = c.req.param()
-    if (!id || !parseInt(id)) {
+    const include_timeslot = c.req.query('include_timeslot');
+    if (!id || !parseInt(id) || !include_timeslot) {
         c.status(400)
         return c.text("")
-    
+    }
+    if (include_timeslot === 'true') {
+        const response = await database.getSubjectForTimeSlot(parseInt(id))
+        if (response.error) {
+            c.status(500)
+            return c.text("")
+        }
+        return c.json(response.result)
     }
     const response = await database.getSubject(parseInt(id))
     if (response.error) {

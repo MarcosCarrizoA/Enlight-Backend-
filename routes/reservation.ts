@@ -19,12 +19,12 @@ app.get("/", async (c) => {
 
 app.post("/", async (c) => {
     const id = c.get("id")
-    const { timeslot_id, date } = await c.req.json()
-    if (!timeslot_id || !date) {
+    const { timeslot_id, date, modality } = await c.req.json()
+    if (!timeslot_id || !date || !modality) {
         c.status(400)
         return c.text("")
     }
-    const response = await database.createReservation(id, timeslot_id, date)
+    const response = await database.createReservation(id, timeslot_id, date, modality)
     if (response.error) {
         c.status(500)
         return c.text("")

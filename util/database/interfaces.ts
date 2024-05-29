@@ -70,6 +70,17 @@ export interface Subject extends RowDataPacket {
     days?: Day[]
 }
 
+export interface SubjectForTimeSlot extends RowDataPacket {
+    id: number
+    category_name: string
+    name: string
+    description: string
+    price: number
+    days?: Day[]
+    modality: string
+    size: number
+}
+
 export interface Day extends RowDataPacket {
     id?: number
     name: string

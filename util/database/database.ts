@@ -32,6 +32,7 @@ import {
     type Token,
     type TransactionResult,
     type Student,
+    type SubjectForTimeSlot,
 } from "./interfaces"
 
 class Database {
@@ -854,6 +855,33 @@ class Database {
         })
     }
 
+    async getSubjectForTimeSlot(id: number): Promise<DatabaseResponse<SubjectForTimeSlot>> {
+        return new Promise(async (resolve) => {
+            try {
+                const subject = await this.query<SubjectForTimeSlot>(
+                    `SELECT subject.id, subject.name, subject.description, subject.price, subject.size, class_modality.option as modality, category.name AS category_name
+                    FROM subject
+                    INNER JOIN category_subject ON subject.id = subject_id
+                    INNER JOIN category ON category_id = category.id
+                    INNER JOIN  class_modality ON class_modality.id = subject.modality
+                    WHERE subject.id = ?`,
+                    [id]
+                )
+                if (subject.length == 0) {
+                    resolve({})
+                    return
+                }
+                const days = await this.getDays(subject[0].id)
+                if (days) {
+                    subject[0].days = days
+                }
+                resolve({ result: subject[0] })
+            } catch (error) {
+                resolve({ error: (error as QueryError).errno })
+            }
+        })
+    }
+
     async deleteSubject(
         accountId: number,
         id: number
@@ -947,10 +975,15 @@ class Database {
     async createReservation(
         account_id: number,
         timeslot_id: number,
-        date: string
+        date: string,
+        modality: string,
     ): Promise<DatabaseResponse<number>> {
         return new Promise(async (resolve) => {
             try {
+                const modalityId = await this.query<ID>(
+                    "SELECT id FROM class_modality WHERE class_modality.option = ?",
+                    [modality.toLowerCase()]
+                )
                 const dateId = await this.query<ID>(
                     "SELECT id FROM DATE WHERE date = ?",
                     [date]
@@ -980,7 +1013,7 @@ class Database {
                 const result = await this.multiTransaction([
                     {
                         sql: "INSERT INTO reservation VALUES (NULL, ?, ?, ?, ?)",
-                        values: [account_id, timeslot_id, id ?? dateId[0].id, 1],
+                        values: [account_id, timeslot_id, id ?? dateId[0].id, modalityId[0].id],
                     },
                 ])
                 await this.completeTransaction(result.connection)
