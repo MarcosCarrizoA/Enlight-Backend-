@@ -817,7 +817,7 @@ class Database {
                 const result = await this.multiTransaction(
                     [
                         {
-                            sql: "INSERT INTO subject VALUES (NULL, ?, ?, ?, ?)",
+                            sql: "INSERT INTO subject VALUES (NULL, ?, ?, ?, ?, ?)",
                             values: [name, description, price, size, modalityId[0].id],
                         },
                     ],
