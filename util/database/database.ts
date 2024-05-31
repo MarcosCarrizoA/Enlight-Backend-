@@ -710,6 +710,24 @@ class Database {
         })
     }
 
+    async getTeacherAccountId(
+        teacherId: number
+    ): Promise<DatabaseResponse<ID>> {
+        return new Promise(async (resolve) => {
+            try {
+                const result = await this.query<ID>(
+                    `SELECT account_id AS id FROM account_teacher
+                    INNER JOIN teacher ON teacher_id = teacher.id
+                    WHERE teacher.id = ?`,
+                    [teacherId]
+                )
+                resolve({ result: result[0] })
+            } catch (error) {
+                resolve({ error: (error as QueryError).errno })
+            }
+        })
+    }
+
     // Categories
     async getCategories(): Promise<DatabaseResponse<Category[]>> {
         return new Promise(async (resolve) => {
@@ -818,7 +836,13 @@ class Database {
                     [
                         {
                             sql: "INSERT INTO subject VALUES (NULL, ?, ?, ?, ?, ?)",
-                            values: [name, description, price, size, modalityId[0].id],
+                            values: [
+                                name,
+                                description,
+                                price,
+                                size,
+                                modalityId[0].id,
+                            ],
                         },
                     ],
                     secondSet
@@ -855,15 +879,19 @@ class Database {
         })
     }
 
-    async getSubjectForTimeSlot(id: number): Promise<DatabaseResponse<SubjectForTimeSlot>> {
+    async getSubjectForTimeSlot(
+        id: number
+    ): Promise<DatabaseResponse<SubjectForTimeSlot>> {
         return new Promise(async (resolve) => {
             try {
                 const subject = await this.query<SubjectForTimeSlot>(
-                    `SELECT subject.id, subject.name, subject.description, subject.price, subject.size, class_modality.option as modality, category.name AS category_name
-                    FROM subject
-                    INNER JOIN category_subject ON subject.id = subject_id
+                    `SELECT subject.id, subject.name, subject.description, subject.price, subject.size, class_modality.option as modality, category.name AS category_name,
+                    teacher.id AS teacher_id FROM subject
+                    INNER JOIN category_subject ON subject.id = category_subject.subject_id
                     INNER JOIN category ON category_id = category.id
                     INNER JOIN  class_modality ON class_modality.id = subject.modality
+                    INNER JOIN teacher_subject ON teacher_subject.subject_id = subject.id
+                    INNER JOIN teacher ON teacher_id = teacher.id
                     WHERE subject.id = ?`,
                     [id]
                 )
@@ -976,7 +1004,7 @@ class Database {
         account_id: number,
         timeslot_id: number,
         date: string,
-        modality: string,
+        modality: string
     ): Promise<DatabaseResponse<number>> {
         return new Promise(async (resolve) => {
             try {
@@ -999,21 +1027,30 @@ class Database {
                     await this.completeTransaction(result.connection)
                     id = result.insertIds[0][0]
                 }
-                const size = await this.query<ID> (
+                const size = await this.query<ID>(
                     "SELECT size FROM subject INNER JOIN timeslot ON timeslot.subject_id = subject.id WHERE timeslot.id = ?",
-                    [timeslot_id])
+                    [timeslot_id]
+                )
                 const reservations = await this.query<ID>(
                     "SELECT COUNT(timeslot_id) as current_student_count FROM reservation WHERE timeslot_id = ? AND date_id = ? GROUP BY timeslot_id",
                     [timeslot_id, id ?? dateId[0].id]
                 )
-                if (reservations[0] != undefined && reservations[0]["current_student_count"] >= size[0]["size"]) {
+                if (
+                    reservations[0] != undefined &&
+                    reservations[0]["current_student_count"] >= size[0]["size"]
+                ) {
                     resolve({ error: 66 })
                     return
                 }
                 const result = await this.multiTransaction([
                     {
                         sql: "INSERT INTO reservation VALUES (NULL, ?, ?, ?, ?)",
-                        values: [account_id, timeslot_id, id ?? dateId[0].id, modalityId[0].id],
+                        values: [
+                            account_id,
+                            timeslot_id,
+                            id ?? dateId[0].id,
+                            modalityId[0].id,
+                        ],
                     },
                 ])
                 await this.completeTransaction(result.connection)
