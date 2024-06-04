@@ -971,6 +971,21 @@ class Database {
         })
     }
 
+    async createRating(reservation_id: Number, teacher_id: Number, givenRating: number): Promise<DatabaseResponse<null>> {
+        return new Promise(async (resolve) => {
+            try {
+                await this.transaction(
+                    "INSERT INTO rating VALUES (?, ?, ?)",
+                    [reservation_id, teacher_id, givenRating]
+                )
+                resolve({})
+            } catch (error) {
+                resolve({ error: (error as QueryError).errno })
+            }
+        }
+
+    )}
+
     // Reservation
     async createReservation(
         account_id: number,
@@ -1198,6 +1213,8 @@ class Database {
         })
     }
 }
+
+
 
 const database = new Database()
 
