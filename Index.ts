@@ -12,6 +12,7 @@ import passwordReset from "./routes/password_reset"
 import credential from "./routes/credential"
 import subject from "./routes/subject"
 import categories from "./routes/categories"
+import rating from "./routes/rating"
 
 const app = new Hono<{ Variables: Variables }>()
 
@@ -38,6 +39,8 @@ app.route("/reservation", reservation)
 app.route("/chat", chat)
 
 app.route("/password-reset", passwordReset)
+
+app.route("/rating", rating)
 
 app.route("/", credential)
 

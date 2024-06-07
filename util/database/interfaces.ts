@@ -120,6 +120,17 @@ export interface TimeslotInternal extends RowDataPacket {
     end_time_id: number
 }
 
+export interface ReservationVerify extends RowDataPacket {
+    date: Date
+    end_time: string
+}
+
+export interface ReservationInternal extends RowDataPacket {
+    id: number
+    timeslot_id: number
+    date: number
+    modality: number
+}
 
 export interface Reservation extends RowDataPacket {
     reservation_id: number

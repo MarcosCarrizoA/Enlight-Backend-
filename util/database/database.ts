@@ -33,6 +33,8 @@ import {
     type TransactionResult,
     type Student,
     type SubjectForTimeSlot,
+    type ReservationVerify,
+    type ReservationInternal,
 } from "./interfaces"
 
 class Database {
@@ -954,7 +956,7 @@ class Database {
                     teacher.*,
                     account.name,
                     account.id AS account_id,
-                    COALESCE(AVG(r.rating), 0) AS rating
+                    AVG(r.rating) AS rating
                 FROM
                     teacher
                 INNER JOIN
@@ -999,13 +1001,16 @@ class Database {
         })
     }
 
-    async createRating(reservation_id: Number, teacher_id: Number, givenRating: number): Promise<DatabaseResponse<null>> {
+    async createRating(reservation_id: Number, teacher_id: Number, givenRating: Number): Promise<DatabaseResponse<null>> {
         return new Promise(async (resolve) => {
             try {
                 await this.transaction(
-                    "INSERT INTO rating VALUES (?, ?, ?)",
-                    [reservation_id, teacher_id, givenRating]
+                    "INSERT INTO rating VALUES (?, ?)",
+                    [teacher_id, givenRating]
                 )
+                await this.transaction("DELETE FROM reservation WHERE id = ?", [
+                    reservation_id,
+                ])
                 resolve({})
             } catch (error) {
                 resolve({ error: (error as QueryError).errno })
@@ -1129,6 +1134,41 @@ class Database {
                 resolve({ error: (error as QueryError).errno })
             }
         })
+    }
+    
+    async verifyReservation(id: number): Promise<DatabaseResponse<boolean>> {
+        return new Promise(async (resolve) => {
+            try {
+                const result = await this.query<ReservationVerify>(
+                    `SELECT d.date, time.time AS end_time
+                    FROM reservation r
+                    INNER JOIN date d ON r.date_id = d.id
+                    INNER JOIN timeslot t ON r.timeslot_id = t.id
+                    INNER JOIN time ON t.end_time_id = time.id
+                    WHERE r.id = ?`,
+                    [id]
+                );
+    
+                if (result.length === 0) {
+                    resolve({ result: false });
+                    return;
+                }
+    
+                const today = new Date();
+                const reservationDate = new Date(result[0].date);
+                const [hours, minutes, seconds] = result[0].end_time.split(':').map(Number);
+                reservationDate.setHours(hours, minutes, seconds, 0);
+    
+                if (today > reservationDate) {
+                    resolve({ result: true });
+                    return;
+                }
+    
+                resolve({ result: false });
+            } catch (error) {
+                resolve({ error: (error as QueryError).errno });
+            }
+        });
     }
 
     private async getTimeslot(id: number): Promise<Timeslot> {
