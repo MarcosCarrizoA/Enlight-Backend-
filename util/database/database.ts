@@ -532,7 +532,8 @@ class Database {
                     "SELECT * FROM teacher WHERE teacher.id = ?",
                     [teacherId[0].id]
                 )
-                delete result[0].id
+                // QUE ALGUIEN ME EXPLIQUE PORQUE BORRABA EL ID
+                // delete result[0].id
                 const categories = await this.getCategories()
                 if (categories.error) {
                     resolve({ error: categories.error })
@@ -1001,13 +1002,17 @@ class Database {
         })
     }
 
-    async createRating(reservation_id: Number, teacher_id: Number, givenRating: Number): Promise<DatabaseResponse<null>> {
+    async createRating(
+        reservation_id: Number,
+        teacher_id: Number,
+        givenRating: Number
+    ): Promise<DatabaseResponse<null>> {
         return new Promise(async (resolve) => {
             try {
-                await this.transaction(
-                    "INSERT INTO rating VALUES (?, ?)",
-                    [teacher_id, givenRating]
-                )
+                await this.transaction("INSERT INTO rating VALUES (?, ?)", [
+                    teacher_id,
+                    givenRating,
+                ])
                 await this.transaction("DELETE FROM reservation WHERE id = ?", [
                     reservation_id,
                 ])
@@ -1015,9 +1020,8 @@ class Database {
             } catch (error) {
                 resolve({ error: (error as QueryError).errno })
             }
-        }
-
-    )}
+        })
+    }
 
     // Reservation
     async createReservation(
@@ -1135,7 +1139,7 @@ class Database {
             }
         })
     }
-    
+
     async verifyReservation(id: number): Promise<DatabaseResponse<boolean>> {
         return new Promise(async (resolve) => {
             try {
@@ -1147,28 +1151,30 @@ class Database {
                     INNER JOIN time ON t.end_time_id = time.id
                     WHERE r.id = ?`,
                     [id]
-                );
-    
+                )
+
                 if (result.length === 0) {
-                    resolve({ result: false });
-                    return;
+                    resolve({ result: false })
+                    return
                 }
-    
-                const today = new Date();
-                const reservationDate = new Date(result[0].date);
-                const [hours, minutes, seconds] = result[0].end_time.split(':').map(Number);
-                reservationDate.setHours(hours, minutes, seconds, 0);
-    
+
+                const today = new Date()
+                const reservationDate = new Date(result[0].date)
+                const [hours, minutes, seconds] = result[0].end_time
+                    .split(":")
+                    .map(Number)
+                reservationDate.setHours(hours, minutes, seconds, 0)
+
                 if (today > reservationDate) {
-                    resolve({ result: true });
-                    return;
+                    resolve({ result: true })
+                    return
                 }
-    
-                resolve({ result: false });
+
+                resolve({ result: false })
             } catch (error) {
-                resolve({ error: (error as QueryError).errno });
+                resolve({ error: (error as QueryError).errno })
             }
-        });
+        })
     }
 
     private async getTimeslot(id: number): Promise<Timeslot> {
@@ -1290,8 +1296,6 @@ class Database {
         })
     }
 }
-
-
 
 const database = new Database()
 
