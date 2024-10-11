@@ -6,12 +6,12 @@ const authenticate: MiddlewareHandler = async (c, next) => {
     const accessToken = authHeader?.split("Bearer ")[1]
     if (!accessToken) {
         c.status(401)
-        return c.text("")
+        return c.text("Unauthorized.")
     }
     const decoded = await decodeAccessToken(accessToken!)
     if (!decoded) {
         c.status(401)
-        return c.text("")
+        return c.text("Unauthorized.")
     }
     c.set("id", decoded)
     await next()
@@ -22,12 +22,12 @@ const refresh: MiddlewareHandler = async (c, next) => {
     const refreshToken = authHeader?.split("Bearer ")[1]
     if (!refreshToken) {
         c.status(401)
-        return c.text("")
+        return c.text("Unauthorized.")
     }
     const decoded = await decodeRefreshToken(refreshToken!)
     if (!decoded) {
         c.status(401)
-        return c.text("")
+        return c.text("Unauthorized.")
     }
     c.set("token", refreshToken)
     c.set("id", decoded)

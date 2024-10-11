@@ -11,7 +11,7 @@ app.get("/", async (c) => {
     const response = await database.getCategories()
     if (response.error) {
         c.status(500)
-        return c.text("")
+        return c.text("Internal server error. Please try again later.")
     }
     return c.json(response.result)
 })

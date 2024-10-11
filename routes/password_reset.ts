@@ -3,6 +3,7 @@ import database from "../util/database/database"
 import mailer from "../util/mailer"
 import { decodePasswordToken, signPasswordToken } from "../util/token"
 import type { Variables } from "../data/variables"
+import { badRequestStatus, internalServerErrorStatus } from "../data/constants"
 
 const app = new Hono<{ Variables: Variables }>()
 
@@ -10,28 +11,28 @@ app.post("/request", async (c) => {
     const { email } = await c.req.json()
     if (!email) {
         c.status(400)
-        return c.text("")
+        return c.text(badRequestStatus)
     }
     const response = await database.getAccountId(email)
     if (response.error) {
         c.status(500)
-        return c.text("")
+        return c.text(internalServerErrorStatus)
     }
     if (!response.result) {
         c.status(404)
-        return c.text("")
+        return c.text("Bad request. Please try again.")
     }
     const signed = await signPasswordToken(response.result.id)
     if (!signed) {
         c.status(500)
-        return c.text("")
+        return c.text(internalServerErrorStatus)
     }
     const result = await mailer.sendRecoveryMail(signed, email)
     if (!result) {
         c.status(500)
-        return c.text("")
+        return c.text(internalServerErrorStatus)
     }
-    return c.text("")
+    return c.text("Request sent.")
 })
 
 app.get("/:token", async (c) => {
@@ -46,7 +47,7 @@ app.post("/:token", async (c) => {
     const passwordToken = c.req.param("token")
     if (password == undefined || passwordToken == undefined) {
         c.status(400)
-        return c.text("")
+        return c.text(badRequestStatus)
     }
     const decoded = await decodePasswordToken(passwordToken)
     if (decoded.error) {
@@ -63,7 +64,7 @@ app.post("/:token", async (c) => {
     const response = await database.updatePassword(decoded.id!, encrypted)
     if (response.error) {
         c.status(500)
-        return c.text("")
+        return c.text(internalServerErrorStatus)
     }
     const file = Bun.file("./pages/successful-reset.html")
     const text = await file.text()
