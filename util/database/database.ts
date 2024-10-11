@@ -1059,9 +1059,14 @@ class Database {
                     "SELECT COUNT(timeslot_id) as current_student_count FROM reservation WHERE timeslot_id = ? AND date_id = ? GROUP BY timeslot_id",
                     [timeslot_id, id ?? dateId[0].id]
                 )
+                const checkExisting = await this.query<ID>(
+                    "SELECT * FROM reservation WHERE account_id = ? AND timeslot_id = ? AND date_id = ?",
+                    [account_id, timeslot_id, id ?? dateId[0].id]
+                )
                 if (
+                    checkExisting.length != 0 || (
                     reservations[0] != undefined &&
-                    reservations[0]["current_student_count"] >= size[0]["size"]
+                    reservations[0]["current_student_count"] >= size[0]["size"])
                 ) {
                     resolve({ error: 66 })
                     return
