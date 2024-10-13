@@ -10,7 +10,7 @@ async function signAccessToken(id: number): Promise<string | undefined> {
         jwt.sign(
             { id: id },
             Bun.env.ACCESS_TOKEN_KEY!,
-            { expiresIn: 60 },
+            { expiresIn: 300 },
             (error, token) => {
                 if (error) {
                     resolve(undefined)

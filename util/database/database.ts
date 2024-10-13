@@ -1255,19 +1255,6 @@ class Database {
         })
     }
 
-    async getStudent(account_id: number): Promise<DatabaseResponse<Student>> {
-        return new Promise(async (resolve) => {
-            try {
-                const reservations = await this.getReservations(account_id)
-                resolve({
-                    result: { reservations: reservations.result! } as Student,
-                })
-            } catch (error) {
-                resolve({ error: (error as QueryError).errno })
-            }
-        })
-    }
-
     async getStudentChats(
         account_id: number
     ): Promise<DatabaseResponse<Account[]>> {

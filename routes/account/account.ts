@@ -67,14 +67,6 @@ app.get("/", async (c) => {
         c.status(500)
         return c.text(internalServerErrorStatus)
     }
-    if (role.result?.name == "student") {
-        const student = await database.getStudent(id)
-        if (student.error) {
-            c.status(500)
-            return c.text(internalServerErrorStatus)
-        }
-        response.result.student = student.result
-    }
     if (include_picture == "true") {
         const picture = await database.getPicture(id)
         if (picture.error) {
