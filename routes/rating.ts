@@ -23,7 +23,7 @@ app.get("/", async (c) => {
     }
     if (verification.result === false) {
         c.status(409)
-        return c.text("Verification failed.")
+        return c.text("You cannot complete a class before it happens.")
     }
     c.status(200)
     return c.text("Rating is available.")
@@ -35,6 +35,7 @@ app.put("/", async (c) => {
         c.status(400)
         return c.text(badRequestStatus)
     }
+    const teacher = await database.getTeacher(teacher_id)
     const verification = await database.verifyReservation(reservation_id)
     if (verification.error) {
         c.status(500)
@@ -42,11 +43,11 @@ app.put("/", async (c) => {
     }
     if (verification.result === false) {
         c.status(409)
-        return c.text("Verification failed.")
+        return c.text("You cannot complete a class before it happens.")
     }
     const response = await database.createRating(
         reservation_id,
-        teacher_id,
+        teacher.result?.id!,
         rating
     )
     if (response.error) {

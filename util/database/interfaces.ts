@@ -135,10 +135,12 @@ export interface ReservationInternal extends RowDataPacket {
 export interface Reservation extends RowDataPacket {
     reservation_id: number
     timeslot_id: number
-    name_subject: string
+    subject_name: string
     subject_id: number
-    name_teacher: string
+    teacher_name: string
     teacher_id: number
+    student_name: string
+    student_id: number
     date: Date
     start_time: Time
     end_time: Time

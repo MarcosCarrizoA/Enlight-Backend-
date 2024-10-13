@@ -19,8 +19,8 @@ app.post("/request", async (c) => {
         return c.text(internalServerErrorStatus)
     }
     if (!response.result) {
-        c.status(404)
-        return c.text("Bad request. Please try again.")
+        c.status(200)
+        return c.text("Reset password request sent. Check your email to reset your password.")
     }
     const signed = await signPasswordToken(response.result.id)
     if (!signed) {
@@ -32,7 +32,7 @@ app.post("/request", async (c) => {
         c.status(500)
         return c.text(internalServerErrorStatus)
     }
-    return c.text("Request sent.")
+    return c.text("Reset password request sent. Check your email to reset your password.")
 })
 
 app.get("/:token", async (c) => {

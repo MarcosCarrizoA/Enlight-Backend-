@@ -67,14 +67,6 @@ app.get("/", async (c) => {
         c.status(500)
         return c.text(internalServerErrorStatus)
     }
-    if (role.result?.name == "teacher") {
-        const teacher = await database.getTeacher(id)
-        if (teacher.error) {
-            c.status(500)
-            return c.text(internalServerErrorStatus)
-        }
-        response.result.teacher = teacher.result
-    }
     if (role.result?.name == "student") {
         const student = await database.getStudent(id)
         if (student.error) {

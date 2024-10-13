@@ -15,7 +15,10 @@ app.get("/", async (c) => {
         c.status(500)
         return c.text(internalServerErrorStatus)
     }
-    return c.json(response.result)
+    return c.json({
+        account_id: id,
+        reservations: response.result,
+    })
 })
 
 app.post("/", async (c) => {
@@ -31,10 +34,15 @@ app.post("/", async (c) => {
         date,
         modality
     )
+    if (response.error && response.error == 66) {
+        c.status(409)
+        return c.text("You already have a reservation for this timeslot.")
+    }
     if (response.error) {
         c.status(500)
         return c.text(internalServerErrorStatus)
     }
+    // The id of the new reservation
     return c.text(response.result!.toString())
 })
 

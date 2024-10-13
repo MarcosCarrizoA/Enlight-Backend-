@@ -40,7 +40,7 @@ class Mailer {
                     from: "enlightnoreply@gmail.com",
                     to: email,
                     subject: "Enlight Password Reset",
-                    html: `<p><a href=http://18.229.107.19/password-reset/${token}>Click here</a> to reset your password. If this wasn't you, please change your password.</p>`,
+                    html: `<p><a href=${Bun.env.SERVER_ADDRESS}/password-reset/${token}>Click here</a> to reset your password. If this wasn't you, please change your password.</p>`,
                 },
                 (error) => {
                     if (error) {

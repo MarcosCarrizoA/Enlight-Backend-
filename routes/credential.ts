@@ -14,7 +14,6 @@ app.post("/login", async (c) => {
     }
     const response = await database.getCredentials(email)
     if (response.error) {
-        console.error(response.error)
         c.status(500)
         return c.text("Internal server error. Please try again later.")
     }
@@ -43,6 +42,7 @@ app.post("/login", async (c) => {
         return c.text("Internal server error. Please try again later.")
     }
     return c.json({
+        account_id: response.result.id,
         access_token: accessToken,
         refresh_token: refreshToken,
         role: response.result.role_id,

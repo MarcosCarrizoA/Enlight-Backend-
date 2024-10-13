@@ -9,7 +9,17 @@ const app = new Hono<{ Variables: Variables }>()
 app.use(auth.authenticate)
 
 app.get("/", async (c) => {
-    const { id } = c.req.query()
+    const id = c.get("id")
+    const response = await database.getTeacher(id)
+    if (response.error) {
+        c.status(500)
+        return c.text(internalServerErrorStatus)
+    }
+    return c.json(response.result)
+})
+
+app.get("/:id", async (c) => {
+    const { id } = c.req.param()
     const teacher = await database.getTeacherPublic(Number(id))
     if (teacher.error) {
         c.status(500)

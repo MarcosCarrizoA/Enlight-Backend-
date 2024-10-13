@@ -1064,9 +1064,10 @@ class Database {
                     [account_id, timeslot_id, id ?? dateId[0].id]
                 )
                 if (
-                    checkExisting.length != 0 || (
-                    reservations[0] != undefined &&
-                    reservations[0]["current_student_count"] >= size[0]["size"])
+                    checkExisting.length != 0 ||
+                    (reservations[0] != undefined &&
+                        reservations[0]["current_student_count"] >=
+                            size[0]["size"])
                 ) {
                     resolve({ error: 66 })
                     return
@@ -1095,37 +1096,62 @@ class Database {
     ): Promise<DatabaseResponse<Reservation[]>> {
         return new Promise(async (resolve) => {
             try {
+                // Query for cases where the account is a student
                 let result = await this.query<Reservation>(
-                    `select reservation.id as reservation_id, t.id as timeslot_id, s.name as name_subject, s.id as subject_id, a.name as name_teacher, at.teacher_id as teacher_id, d.date as date, t2.time as start_time, t3.time as end_time
+                    `select reservation.id as reservation_id,
+                    t.id as timeslot_id,
+                    s.name as subject_name,
+                    s.id as subject_id,
+                    a.name as teacher_name,
+                    at.account_id as teacher_id,
+                    d.date as date,
+                    t2.time as start_time,
+                    t3.time as end_time,
+                    acc.id as student_id,
+                    acc.name as student_name
                     from reservation
                     inner join timeslot t on t.id = reservation.timeslot_id
                     inner join subject s on s.id = t.subject_id
                     inner join teacher_subject ts on s.id = ts.subject_id
                     inner join account_teacher at on at.teacher_id = ts.teacher_id
                     inner join account a on a.id = at.account_id
+                    inner join account acc on acc.id = reservation.account_id
                     inner join date d on d.id = reservation.date_id
                     inner join time t3 on t3.id = t.end_time_id
                     inner join time t2 on t2.id = t.start_time_id
                     where reservation.account_id = ?`,
                     [account_id]
                 )
-                if (result.length == 0) {
+
+                // If no results, query for cases where the account is a teacher
+                if (result.length === 0) {
                     result = await this.query<Reservation>(
-                        `select reservation.id as reservation_id, t.id as timeslot_id, s.name as name_subject, s.id as subject_id, a.name as name_teacher, at.teacher_id as teacher_id, d.date as date, t2.time as start_time, t3.time as end_time
-                    from reservation
-                    inner join timeslot t on t.id = reservation.timeslot_id
-                    inner join subject s on s.id = t.subject_id
-                    inner join teacher_subject ts on s.id = ts.subject_id
-                    inner join account_teacher at on at.teacher_id = ts.teacher_id
-                    inner join account a on a.id = reservation.account_id
-                    inner join date d on d.id = reservation.date_id
-                    inner join time t3 on t3.id = t.end_time_id
-                    inner join time t2 on t2.id = t.start_time_id
-                    where at.account_id = ?`,
+                        `select reservation.id as reservation_id,
+                        t.id as timeslot_id,
+                        s.name as subject_name,
+                        s.id as subject_id,
+                        acc.name as student_name,
+                        acc.id as student_id,
+                        d.date as date,
+                        t2.time as start_time,
+                        t3.time as end_time,
+                        a.id as teacher_id,
+                        a.name as teacher_name
+                        from reservation
+                        inner join timeslot t on t.id = reservation.timeslot_id
+                        inner join subject s on s.id = t.subject_id
+                        inner join teacher_subject ts on s.id = ts.subject_id
+                        inner join account_teacher at on at.teacher_id = ts.teacher_id
+                        inner join account a on a.id = at.account_id
+                        inner join account acc on acc.id = reservation.account_id
+                        inner join date d on d.id = reservation.date_id
+                        inner join time t3 on t3.id = t.end_time_id
+                        inner join time t2 on t2.id = t.start_time_id
+                        where at.account_id = ?`,
                         [account_id]
                     )
                 }
-                resolve({ result: result })
+                resolve({ result })
             } catch (error) {
                 resolve({ error: (error as QueryError).errno })
             }
