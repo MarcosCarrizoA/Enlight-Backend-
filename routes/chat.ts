@@ -50,13 +50,7 @@ app.post("/", async (c) => {
         c.status(500)
         return c.text("Internal server error. Please try again later.")
     }
-    database
-    const teacherAccountId = await database.getTeacherAccountId(receiver_id)
-    if (teacherAccountId.error) {
-        c.status(500)
-        return c.text("Internal server error. Please try again later.")
-    }
-    const receiverRole = await database.getRole(teacherAccountId.result?.id!)
+    const receiverRole = await database.getRole(receiver_id)
     if (receiverRole.error) {
         c.status(500)
         return c.text("Internal server error. Please try again later.")
@@ -65,8 +59,8 @@ app.post("/", async (c) => {
         c.status(403)
         return c.text("Forbidden.")
     }
-    const studentId = role.result?.name == "student" ? id : teacherAccountId.result?.id!
-    const teacherId = role.result?.name == "teacher" ? id : teacherAccountId.result?.id!
+    const studentId = role.result?.name == "student" ? id : receiver_id
+    const teacherId = role.result?.name == "teacher" ? id : receiver_id
     const response = await database.createChat(studentId, teacherId)
     if (response.error) {
         c.status(response.error == 1062 ? 409 : 500)

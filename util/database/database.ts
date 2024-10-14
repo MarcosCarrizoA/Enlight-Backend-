@@ -889,12 +889,13 @@ class Database {
             try {
                 const subject = await this.query<SubjectForTimeSlot>(
                     `SELECT subject.id, subject.name, subject.description, subject.price, subject.size, class_modality.option as modality, category.name AS category_name,
-                    teacher.id AS teacher_id FROM subject
+                    account.id AS teacher_id FROM subject
                     INNER JOIN category_subject ON subject.id = category_subject.subject_id
                     INNER JOIN category ON category_id = category.id
                     INNER JOIN  class_modality ON class_modality.id = subject.modality
                     INNER JOIN teacher_subject ON teacher_subject.subject_id = subject.id
-                    INNER JOIN teacher ON teacher_id = teacher.id
+                    INNER JOIN account_teacher ON account_teacher.teacher_id = teacher_subject.teacher_id
+                    INNER JOIN account ON account_teacher.account_id = account.id
                     WHERE subject.id = ?`,
                     [id]
                 )
