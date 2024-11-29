@@ -28,6 +28,7 @@ app.get("/:id", async (c) => {
         c.status(500)
         return c.text(internalServerErrorStatus)
     }
+    response.result!.days = response.result?.days ?? []
     return c.json(response.result)
 })
 

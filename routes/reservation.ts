@@ -3,6 +3,7 @@ import type { Variables } from "../data/variables"
 import database from "../util/database/database"
 import auth from "../middleware/auth"
 import { badRequestStatus, internalServerErrorStatus } from "../data/constants"
+import type { Reservation } from "../util/database/interfaces"
 
 const app = new Hono<{ Variables: Variables }>()
 

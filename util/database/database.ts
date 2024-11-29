@@ -555,6 +555,8 @@ class Database {
                         const days = await this.getDays(subject.id)
                         if (days) {
                             subject.days = days
+                        } else {
+                            subject.days = []
                         }
                     }
                     result[0].subjects = subjects

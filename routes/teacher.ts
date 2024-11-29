@@ -3,6 +3,7 @@ import database from "../util/database/database"
 import auth from "../middleware/auth"
 import type { Variables } from "../data/variables"
 import { badRequestStatus, internalServerErrorStatus } from "../data/constants"
+import type { DatabaseResponse, TeacherPublic } from "../util/database/interfaces"
 
 const app = new Hono<{ Variables: Variables }>()
 
@@ -20,7 +21,7 @@ app.get("/", async (c) => {
 
 app.get("/:id", async (c) => {
     const { id } = c.req.param()
-    const teacher = await database.getTeacherPublic(Number(id))
+    const teacher: DatabaseResponse<TeacherPublic> = await database.getTeacherPublic(Number(id))
     if (teacher.error) {
         c.status(500)
         return c.text(internalServerErrorStatus)

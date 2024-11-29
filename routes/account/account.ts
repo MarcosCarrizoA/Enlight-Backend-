@@ -8,6 +8,7 @@ import {
     badRequestStatus,
     internalServerErrorStatus,
 } from "../../data/constants"
+import type { Account, DatabaseResponse } from "../../util/database/interfaces"
 
 const app = new Hono<{ Variables: Variables }>()
 
@@ -53,7 +54,7 @@ app.use(auth.authenticate)
 app.get("/", async (c) => {
     const { include_picture } = c.req.query()
     const id = c.get("id")
-    const response = await database.getAccount(id)
+    const response: DatabaseResponse<Account> = await database.getAccount(id)
     if (response.error) {
         c.status(500)
         return c.text(internalServerErrorStatus)

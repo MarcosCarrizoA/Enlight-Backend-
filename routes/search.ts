@@ -26,8 +26,13 @@ app.get("/", async (c) => {
                 c.status(500)
                 return c.text(internalServerErrorStatus)
             }
-            delete teacher.account_id
             teacher.picture = picture.result?.picture.toString("base64")
+            teacher.rating = teacher.rating ?? 0
+        }
+    }
+    if (response.result?.subjects) {
+        for (const subject of response.result.subjects) {
+            subject.days = subject.days ?? []
         }
     }
     return c.json(response.result)
