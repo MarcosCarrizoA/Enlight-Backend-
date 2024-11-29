@@ -35,6 +35,11 @@ app.get("/", async (c) => {
             subject.days = subject.days ?? []
         }
     }
+    response.result?.teachers?.forEach((teacher) => { 
+        if (teacher.rating === null) {
+            teacher.rating = 0.0
+        }
+    })
     return c.json(response.result)
 })
 

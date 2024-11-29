@@ -59,6 +59,7 @@ export interface TeacherPublic extends RowDataPacket {
     name: string
     description: string
     picture?: string
+    subjects: Subject[]
 }
 
 export interface Subject extends RowDataPacket {

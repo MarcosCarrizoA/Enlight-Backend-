@@ -49,6 +49,7 @@ class Database {
             database: "enlight",
             connectionLimit: 3,
         })
+        console.log("Database connected")
     }
 
     // Elemental operations

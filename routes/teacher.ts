@@ -28,6 +28,10 @@ app.get("/:id", async (c) => {
     }
     delete teacher.result?.account_id
     c.status(200)
+    if (teacher.result?.rating === null) {
+        teacher.result.rating = 0.0
+    }
+    console.log(teacher.result?.subjects[0].days![0].timeslots![0].id)
     return c.json(teacher.result)
 })
 
