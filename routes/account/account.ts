@@ -31,6 +31,7 @@ app.post("/", async (c) => {
     )
     if (response.error) {
         c.status(response.error == 1062 ? 409 : 500)
+        console.log(response.error)
         return c.text(
             response.error == 1062
                 ? "Email already exists."

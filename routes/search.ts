@@ -30,6 +30,11 @@ app.get("/", async (c) => {
             teacher.picture = picture.result?.picture.toString("base64")
         }
     }
+    response.result?.teachers?.forEach((teacher) => { 
+        if (teacher.rating === null) {
+            teacher.rating = 0.0
+        }
+    })
     return c.json(response.result)
 })
 
