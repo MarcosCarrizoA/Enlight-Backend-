@@ -13,6 +13,8 @@ import credential from "./routes/credential"
 import subject from "./routes/subject"
 import categories from "./routes/categories"
 import rating from "./routes/rating"
+import payment from "./routes/payment"
+import { Payment } from "mercadopago"
 
 const app = new Hono<{ Variables: Variables }>()
 
@@ -41,6 +43,8 @@ app.route("/chat", chat)
 app.route("/password-reset", passwordReset)
 
 app.route("/rating", rating)
+
+app.route("/pay", payment)
 
 app.route("/", credential)
 

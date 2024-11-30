@@ -1212,6 +1212,18 @@ class Database {
         })
     }
 
+    async getPrice(id: number): Promise<Number> {
+        return new Promise(async (resolve) => {
+            const result = (
+                await this.query<Subject>(
+                    "SELECT * FROM subject WHERE id = ?",
+                    [id]
+                )
+            )[0]
+            resolve(result.price)
+        })
+    }
+
     private async getTimeslot(id: number): Promise<Timeslot> {
         return new Promise(async (resolve) => {
             const result = (

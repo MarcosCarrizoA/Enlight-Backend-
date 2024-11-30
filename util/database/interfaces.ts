@@ -113,6 +113,7 @@ export interface Timeslot {
     end_time: string
 }
 
+
 export interface TimeslotInternal extends RowDataPacket {
     id: number
     subject_id: number
