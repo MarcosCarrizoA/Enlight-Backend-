@@ -4,14 +4,8 @@ import database from "../util/database/database"
 import auth from "../middleware/auth"
 import type { MessageData } from "../util/database/interfaces"
 import { badRequestStatus, internalServerErrorStatus } from "../data/constants"
-import admin from "firebase-admin"
-import { getMessaging, type Message } from "firebase-admin/messaging"
-
-admin.initializeApp({
-    credential: admin.credential.cert("./firebase-private-key.json"),
-    databaseURL: "https://enlight-f3a1d-default-rtdb.firebaseio.com",
-})
-console.log("Firebase initialized")
+import { type Message } from "firebase-admin/messaging"
+import firebase from "../util/firebase"
 
 const app = new Hono<{ Variables: Variables }>()
 
@@ -106,9 +100,12 @@ app.post("/message", async (c) => {
             title: account.result?.name,
             body: body.message,
         },
+        android: {
+            priority: "high",
+        },
     }
     try {
-        await admin.messaging().send(message)
+        await firebase.messaging().send(message)
         c.status(200)
         return c.text("Message sent.")
     } catch (_) {

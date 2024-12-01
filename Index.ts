@@ -14,7 +14,9 @@ import subject from "./routes/subject"
 import categories from "./routes/categories"
 import rating from "./routes/rating"
 import payment from "./routes/payment"
-import { Payment } from "mercadopago"
+import { startCron } from "./util/cron"
+
+startCron()
 
 const app = new Hono<{ Variables: Variables }>()
 

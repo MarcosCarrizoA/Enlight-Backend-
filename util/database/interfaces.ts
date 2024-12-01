@@ -21,6 +21,7 @@ export interface Token extends RowDataPacket {
 }
 
 export interface Account extends RowDataPacket {
+    id: number
     email: string
     name: string
     birthday: Date

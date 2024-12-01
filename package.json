@@ -7,6 +7,7 @@
     "@types/bun": "latest",
     "@types/cors": "^2.8.17",
     "@types/jsonwebtoken": "^9.0.6",
+    "@types/node-cron": "^3.0.11",
     "@types/nodemailer": "^6.4.14"
   },
   "peerDependencies": {
@@ -20,6 +21,7 @@
     "jsonwebtoken": "^9.0.2",
     "mercadopago": "^2.0.15",
     "mysql2": "^3.9.3",
+    "node-cron": "^3.0.3",
     "nodemailer": "^6.9.13"
   }
 }

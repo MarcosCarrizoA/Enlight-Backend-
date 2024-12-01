@@ -51,6 +51,41 @@ class Mailer {
             )
         })
     }
+
+    async sendReservationNotification(
+        name: string,
+        email: string,
+        subject: string,
+        time: string
+    ): Promise<boolean> {
+        return new Promise((resolve) => {
+            this.transporter.sendMail(
+                {
+                    from: Bun.env.MAIL_USER,
+                    to: email,
+                    subject: "Reminder: Reservation for tomorrow",
+                    html: `
+                        <p>Hi ${name},</p>
+                        <p>This is a friendly reminder that you have a reservation scheduled for tomorrow:</p>
+                        <ul>
+                            <li><strong>Subject:</strong> ${subject}</li>
+                            <li><strong>Time:</strong> ${time}</li>
+                        </ul>
+                        <p>Please make sure to arrive on time. If you have any questions or need to modify your reservation, feel free to contact us.</p>
+                        <p>Looking forward to seeing you!</p>
+                        <p>Best regards,</p>
+                        <p>The Enlight team</p>
+                    `,
+                },
+                (error) => {
+                    if (error) {
+                        resolve(false)
+                    }
+                    resolve(true)
+                }
+            )
+        })
+    }
 }
 
 const mailer = new Mailer()

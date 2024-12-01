@@ -4,6 +4,7 @@ import auth from "../middleware/auth"
 import { badRequestStatus, internalServerErrorStatus } from "../data/constants"
 import database from "../util/database/database"
 import { MercadoPagoConfig, Preference } from 'mercadopago'
+import type { PreferenceRequest } from "mercadopago/dist/clients/preference/commonTypes"
 const client = new MercadoPagoConfig({accessToken: 'APP_USR-4819549761139848-113013-eeb991b41f77724aec5751ab6e8026a1-831933288'})
 
 const app = new Hono<{ Variables: Variables }>()
@@ -14,7 +15,7 @@ app.post("/", async (c) => {
     const { teacher_name, subject_id} = await c.req.json()
     const unit_price = await database.getPrice(subject_id)
     try {
-        const body = {
+        const body: PreferenceRequest = {
             items: [
             {
                 id: Math.floor(Math.random() * 1000000).toString(),

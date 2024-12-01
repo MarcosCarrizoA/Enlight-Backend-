@@ -53,7 +53,7 @@ class Database {
     }
 
     // Elemental operations
-    private async query<T extends RowDataPacket>(
+    async query<T extends RowDataPacket>(
         sql: string,
         values: any[]
     ): Promise<T[]> {
@@ -353,7 +353,6 @@ class Database {
                     "SELECT * FROM account WHERE id = ?",
                     [id]
                 )
-                delete result[0].id
                 delete result[0].password
                 resolve({ result: result[0] })
             } catch (error) {
