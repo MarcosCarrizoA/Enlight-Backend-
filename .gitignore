@@ -129,5 +129,6 @@ dist
 .yarn/install-state.gz
 .pnp.*
 
-# Certificates
+# Credentials
 private/
+firebase-private-key.json

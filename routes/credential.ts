@@ -81,7 +81,8 @@ app.get("/logout", async (c) => {
         c.status(500)
         return c.text("Internal server error. Please try again later.")
     }
-    return c.text("You have been logged out.")
+    const id = c.get("id")
+    return c.json({ account_id: id })
 })
 
 export default app
