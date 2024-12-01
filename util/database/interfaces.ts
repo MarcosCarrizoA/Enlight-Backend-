@@ -179,3 +179,10 @@ export interface Subtransaction {
     /** Insert ID of previous subtransaction to be inserted as the first value parameter. */
     previousInsert?: number[][]
 }
+
+export interface MessageData {
+    sender_id: number
+    receiver_id: number
+    message: string
+    timestamp: string
+}
