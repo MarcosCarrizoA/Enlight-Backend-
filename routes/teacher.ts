@@ -1,6 +1,6 @@
 import { Hono } from "hono"
 import database from "../util/database/database"
-import auth from "../middleware/auth"
+import auth from "../middleware/Auth"
 import type { Variables } from "../data/variables"
 import { badRequestStatus, internalServerErrorStatus } from "../data/constants"
 import type { DatabaseResponse, TeacherPublic } from "../util/database/interfaces"
@@ -15,6 +15,11 @@ app.get("/", async (c) => {
     if (response.error) {
         c.status(500)
         return c.text(internalServerErrorStatus)
+    }
+    if (response.result) {
+        if (response.result.subjects === null || response.result.subjects === undefined) {
+            response.result.subjects = []
+        }
     }
     return c.json(response.result)
 })
@@ -31,7 +36,11 @@ app.get("/:id", async (c) => {
     if (teacher.result?.rating === null) {
         teacher.result.rating = 0.0
     }
-    console.log(teacher.result?.subjects[0].days![0].timeslots![0].id)
+    if (teacher.result) {
+        if (teacher.result.subjects === null || teacher.result.subjects === undefined) {
+            teacher.result.subjects = []
+        }
+    }
     return c.json(teacher.result)
 })
 
