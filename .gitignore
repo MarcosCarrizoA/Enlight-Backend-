@@ -132,3 +132,6 @@ dist
 # Credentials
 private/
 firebase-private-key.json
+
+# Build
+enlight
