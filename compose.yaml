@@ -7,3 +7,14 @@ services:
       dockerfile: Dockerfile
     ports:
       - "9090:80"
+    environment:
+          DATABASE_USER: ${DATABASE_USER}
+          DATABASE_PASSWORD: ${DATABASE_PASSWORD}
+          DATABASE_PORT: ${DATABASE_PORT}
+          DATABASE_HOST: ${DATABASE_HOST}
+          SERVER_ADDRESS: ${SERVER_ADDRESS}
+          MAIL_USER: ${MAIL_USER}
+          MAIL_PASSWORD: ${MAIL_PASSWORD}
+          ACCESS_TOKEN_KEY: ${ACCESS_TOKEN_KEY}
+          REFRESH_TOKEN_KEY: ${REFRESH_TOKEN_KEY}
+          PASSWORD_TOKEN_KEY: ${PASSWORD_TOKEN_KEY}
