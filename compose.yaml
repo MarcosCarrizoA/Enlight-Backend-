@@ -8,13 +8,47 @@ services:
     ports:
       - "9090:80"
     environment:
-          DATABASE_USER: ${DATABASE_USER}
-          DATABASE_PASSWORD: ${DATABASE_PASSWORD}
-          DATABASE_PORT: ${DATABASE_PORT}
-          DATABASE_HOST: ${DATABASE_HOST}
-          SERVER_ADDRESS: ${SERVER_ADDRESS}
-          MAIL_USER: ${MAIL_USER}
-          MAIL_PASSWORD: ${MAIL_PASSWORD}
-          ACCESS_TOKEN_KEY: ${ACCESS_TOKEN_KEY}
-          REFRESH_TOKEN_KEY: ${REFRESH_TOKEN_KEY}
-          PASSWORD_TOKEN_KEY: ${PASSWORD_TOKEN_KEY}
+      DATABASE_USER: ${DATABASE_USER}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD}
+      DATABASE_PORT: ${DATABASE_PORT}
+      DATABASE_HOST: ${DATABASE_HOST}
+      SERVER_ADDRESS: ${SERVER_ADDRESS}
+      MAIL_USER: ${MAIL_USER}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
+      ACCESS_TOKEN_KEY: ${ACCESS_TOKEN_KEY}
+      REFRESH_TOKEN_KEY: ${REFRESH_TOKEN_KEY}
+      PASSWORD_TOKEN_KEY: ${PASSWORD_TOKEN_KEY}
+    depends_on:
+      - database
+
+  database:
+    image: mysql
+    restart: unless-stopped
+    container_name: enlight-database
+    ports:
+      - "${DATABASE_PORT}:3306"
+    environment:
+      MYSQL_RANDOM_ROOT_PASSWORD: yes
+      MYSQL_DATABASE: enlight
+      MYSQL_USER: ${DATABASE_USER}
+      MYSQL_PASSWORD: ${DATABASE_PASSWORD}
+
+    volumes:
+      - database_data:/var/lib/mysql
+
+  phpmyadmin:
+    image: phpmyadmin
+    restart: unless-stopped
+    container_name: enlight-phpmyadmin
+    ports:
+      - "3000:80"
+    environment:
+      PMA_HOST: enlight-database
+      PMA_PORT: ${DATABASE_PORT}
+      PMA_USER: ${DATABASE_USER}
+      PMA_PASSWORD: ${DATABASE_PASSWORD}
+    depends_on:
+      - database
+    
+volumes:
+  database_data:

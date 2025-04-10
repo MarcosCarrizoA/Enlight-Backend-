@@ -135,3 +135,4 @@ firebase-private-key.json
 
 # Build
 enlight
+generated/prisma/
