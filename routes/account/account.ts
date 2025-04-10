@@ -2,7 +2,7 @@ import { Hono } from "hono"
 import type { Variables } from "../../data/variables"
 import database from "../../util/database/database"
 import mailer from "../../util/mailer"
-import auth from "../../middleware/Auth"
+import auth from "../../middleware/auth"
 import picture from "./picture"
 import {
     badRequestStatus,
